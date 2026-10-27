@@ -2,7 +2,9 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%231a1816'/%3E%3Cg fill='none' stroke='%23d9bb7f' stroke-linecap='round'%3E%3Ccircle cx='20' cy='20' r='11' stroke-width='3.5'/%3E%3Cpath d='M28.5 28.5 L39 39' stroke-width='6'/%3E%3C/g%3E%3C/svg%3E">
 <title>Sherlock Holmes: The SQL Sleuth</title>
 <meta name="description" content="Solve ten Victorian mysteries by questioning a Scotland Yard archive with SQL, right in the browser.">
 <meta name="theme-color" content="#1a1816">
@@ -169,6 +171,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
    ========================================================================== */
 .app {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
@@ -507,6 +510,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
 .workbench {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   gap: 16px;
   min-height: 0;
@@ -773,6 +777,102 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
 .hd-foot { padding: 10px 16px 14px; border-top: 1px solid var(--canvas-line); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .hd-foot p { font-size: 13px; color: var(--on-dark-soft); }
 
+/* Story: Watson's journal pages, the lines of inquiry, and new developments */
+.story-card { width: min(640px, 100%); padding: 30px 34px 24px; }
+.story-kicker { font-size: 14px; font-style: italic; color: var(--crimson); }
+.story-title { margin-top: 4px; font: 32px/1.12 var(--font-display) !important; padding-right: 0 !important; }
+.story-body { margin-top: 14px; }
+.story-body p { margin-top: 12px; font-size: 16.5px; line-height: 1.75; hyphens: auto; }
+.story-body p:first-child::first-letter { float: left; margin: 5px 8px 0 0; font: 56px/0.82 var(--font-display); color: var(--crimson); }
+.story-body .story-sign { margin-top: 16px; font-size: 14px; font-style: italic; text-align: right; color: var(--ink-soft); }
+.story-card .modal-actions { margin-top: 18px; }
+.story.play .story-card { animation: fade-up 420ms ease-out both; }
+
+.replay { margin-top: 10px; }
+.leads { margin-top: 20px; }
+.leads h3 { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font: 19px/1.2 var(--font-display); }
+.leads-count { font: italic 13.5px var(--font-body); color: var(--ink-soft); }
+.lead-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.lead {
+  display: grid; grid-template-columns: 1.4em minmax(0, 1fr); gap: 2px 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(43, 33, 24, 0.16);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+}
+.lead-mark { grid-row: 1 / span 2; font: 18px/1.25 var(--font-display); color: var(--ink-faint); text-align: center; }
+.lead-title { font-size: 15px; font-weight: 700; line-height: 1.35; }
+.lead-text { grid-column: 2; font-size: 14.5px; line-height: 1.55; }
+.lead.found .lead-mark { color: #2c5a48; }
+.lead.found .lead-text { font-style: italic; color: #3b2a1b; }
+.lead.current { border-color: rgba(139, 0, 0, 0.5); box-shadow: inset 3px 0 0 var(--crimson); background: rgba(139, 0, 0, 0.045); }
+.lead.current .lead-mark { color: var(--crimson); }
+.lead.later { border-style: dashed; background: none; }
+.lead.later .lead-text { font-style: italic; color: var(--ink-faint); }
+.leads-done { margin-top: 8px; font-size: 14.5px; font-style: italic; color: #2c5a48; }
+.leads.flash { animation: card-flash 900ms ease-out; }
+
+.inquiry-strip {
+  display: flex; align-items: baseline; gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 10px;
+  border: 1px dashed rgba(139, 0, 0, 0.4);
+  border-radius: 3px;
+  background: rgba(139, 0, 0, 0.04);
+  color: var(--ink);
+  font-size: 14px; line-height: 1.45;
+  text-align: left;
+}
+.inquiry-strip:hover { background: rgba(139, 0, 0, 0.08); }
+.is-label { flex: none; font-style: italic; color: var(--crimson); }
+.is-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inquiry-strip.done { border-color: rgba(44, 90, 72, 0.45); background: rgba(44, 90, 72, 0.06); }
+.inquiry-strip.done .is-label { color: #2c5a48; }
+
+.development {
+  max-width: 760px;
+  margin-bottom: 18px;
+  padding: 14px 16px 14px 18px;
+  border: 1px solid rgba(44, 90, 72, 0.35);
+  border-left: 4px solid #2c5a48;
+  border-radius: 2px;
+  background: rgba(44, 90, 72, 0.07);
+  animation: fade-up 480ms ease-out both;
+}
+.dev-kicker { font-size: 13.5px; font-style: italic; color: #2c5a48; }
+.dev-title { margin-top: 2px; font: 22px/1.2 var(--font-display); }
+.dev-text { margin-top: 6px; font-size: 15px; line-height: 1.6; font-style: italic; }
+.dev-next { margin-top: 10px; font-size: 14.5px; line-height: 1.55; }
+.development .btn-crimson { margin-top: 10px; }
+
+.solution .epilogue { font-style: italic; }
+.teaser { margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(43, 33, 24, 0.16); font: italic 17.5px/1.5 var(--font-display); color: #3b2a1b; }
+.cp-foot { margin-top: 6px; padding: 6px 4px 2px; border-top: 1px solid var(--canvas-line); }
+
+/* The keyword strip: SQL words a tap away, for touch screens */
+.keybar { display: none; min-width: 0; max-width: 100%; gap: 6px; margin-top: 8px; padding: 2px 0 4px; overflow-x: auto; scrollbar-width: none; }
+.keybar::-webkit-scrollbar { display: none; }
+.kb {
+  flex: none;
+  min-width: 42px; height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(43, 33, 24, 0.3);
+  border-radius: 4px;
+  background: #fbf6e9;
+  color: var(--tk-keyword);
+  font: 600 13.5px var(--font-mono);
+  white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.kb.sym { color: var(--ink); font-weight: 500; }
+.kb:active { background: #efe3c6; }
+.kb.run { border-color: var(--crimson-deep); background: linear-gradient(#981111, var(--crimson)); color: #fbf3e2; font: 15px var(--font-body); }
+.kb:active { transform: translateY(1px); }
+
+.mobile-nav { display: none; }
+
 /* ==========================================================================
    Modals
    ========================================================================== */
@@ -896,6 +996,93 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
   .victory-title { font-size: 34px !important; }
 }
 
+/* Touch screens: bigger targets, and the keyword strip */
+@media (pointer: coarse) {
+  button { touch-action: manipulation; }
+  .quick-btn { padding: 7px 11px; }
+  .btn-small { padding: 7px 12px; }
+  .btn, .btn-quiet-dark { min-height: 40px; }
+  .cols li { padding: 4px 0; }
+  .col, .tname { padding: 5px 2px; }
+  .sort-btn { padding: 10px 10px 9px; }
+  .keybar { display: flex; }
+}
+
+/* Phones: one view at a time (Case, Query, Results), switched from a bar at the bottom */
+@media (max-width: 760px) {
+  .app { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .masthead { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 10px 14px; }
+  .title-long, .brand p, .casebook-seals, .wide-only { display: none; }
+  .brand { gap: 10px; }
+  .brand h1 { font-size: 21px; }
+  .emblem { width: 30px; height: 30px; }
+  .casebook { grid-row: auto; gap: 4px; flex-wrap: nowrap; white-space: nowrap; }
+  .casebook-count { font-size: 13px; }
+  #reset-btn { padding: 6px 8px; font-size: 13px; }
+
+  .desk { display: block; }
+  .app:not([data-view="case"]) .dossier { display: none; }
+  .app[data-view="case"] .workbench { display: none; }
+  .app[data-view="query"] .results-card { display: none; }
+  .app[data-view="results"] .query-card { display: none; }
+  .dossier { border-bottom: none; }
+  .dossier-body { max-height: none; overflow: visible; }
+  .dossier-actions { position: sticky; bottom: calc(63px + env(safe-area-inset-bottom)); z-index: 5; background: #221e1a; box-shadow: 0 -6px 14px rgba(0, 0, 0, 0.35); }
+  .workbench { padding: 12px; }
+  .query-card { padding: 10px 10px 10px; }
+  .results-card { min-height: calc(100vh - 150px); }
+  .results-card { grid-template-columns: minmax(0, 1fr); }
+  .results-body { max-height: none; overflow: visible; min-width: 0; }
+  .result-set { overflow-x: auto; overscroll-behavior-x: contain; }
+  .is-text { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .kbd-hint, .editor-help { display: none; }
+  .keybar { display: flex; }
+
+  /* Soft-wrapped editor: no horizontal panning on a narrow screen */
+  .editor { grid-template-columns: minmax(0, 1fr); height: 44vh; min-height: 190px; resize: none; }
+  .gutter { display: none; }
+  .code pre, .code textarea { padding: 10px 12px 30px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  .mobile-nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center;
+    height: calc(64px + env(safe-area-inset-bottom));
+    padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--brass-dim);
+    background: #181513;
+  }
+  .mobile-nav button {
+    position: relative;
+    display: grid; justify-items: center; gap: 2px;
+    padding: 6px 4px 5px;
+    border: none; border-radius: 6px;
+    background: none;
+    color: var(--on-dark-soft);
+    font-size: 12.5px; line-height: 1.2;
+  }
+  .mobile-nav svg { width: 22px; height: 22px; }
+  .mobile-nav button[aria-pressed="true"] { color: var(--parchment); background: rgba(176, 141, 87, 0.16); }
+  .mobile-nav .dot { position: absolute; top: 5px; left: calc(50% + 9px); width: 9px; height: 9px; border-radius: 50%; background: #c62d2b; box-shadow: 0 0 0 2px #181513; }
+  .mobile-nav .dot[hidden] { display: none; }
+  .toast { bottom: calc(84px + env(safe-area-inset-bottom)); }
+
+  /* While typing, the keyword strip rides just above the keyboard and the bottom bar steps aside */
+  .app.editing .mobile-nav { display: none; }
+  .app.editing .keybar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 46;
+    margin: 0;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--brass);
+    background: #eee2c4;
+    box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.3);
+  }
+  .app.editing .editor { height: 34vh; height: 34dvh; }
+
+  .story-card { padding: 22px 18px 18px; }
+  .story-title { font-size: 27px !important; }
+  .story-body p { font-size: 16px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
 }
@@ -931,14 +1118,14 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
         </g>
       </svg>
       <div>
-        <h1>Sherlock Holmes: The SQL Sleuth</h1>
+        <h1><span class="title-long">Sherlock Holmes: </span>The SQL Sleuth</h1>
         <p>Ten cases from the Scotland Yard archive, solved in SQL</p>
       </div>
     </div>
     <div class="casebook">
-      <p class="casebook-count" id="casebook-count">0 of 10 cases closed</p>
+      <p class="casebook-count" id="casebook-count">0 of 10<span class="wide-only"> cases</span> closed</p>
       <div class="casebook-seals" id="casebook-seals" aria-hidden="true"></div>
-      <button type="button" class="btn-quiet-dark" id="reset-btn">Reset progress</button>
+      <button type="button" class="btn-quiet-dark" id="reset-btn">Reset<span class="wide-only"> progress</span></button>
     </div>
   </header>
 
@@ -987,6 +1174,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
           <button type="button" class="btn" id="history-btn" aria-expanded="false" aria-controls="history-drawer">History <span class="count" id="history-count">0</span></button>
           <button type="button" class="btn" id="clear-btn">Clear</button>
         </div>
+        <button type="button" class="inquiry-strip" id="inquiry-strip" title="Show the lines of inquiry"></button>
         <div class="quick-tables" id="quick-tables" role="group" aria-label="Open a table">
           <span class="quick-label">Open a table:</span>
         </div>
@@ -997,6 +1185,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
             <textarea id="sql-input" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SQL query" aria-describedby="editor-help"></textarea>
           </div>
         </div>
+        <div class="keybar" id="keybar" role="toolbar" aria-label="Insert SQL words"></div>
         <p class="editor-help" id="editor-help"></p>
       </div>
 
@@ -1032,6 +1221,21 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
       </aside>
     </section>
   </main>
+
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Views">
+    <button type="button" data-view="case" aria-pressed="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5h6l2 2h10v10.5H3z"/><path d="M3 10.5h18"/></svg>
+      <span>Case</span><i class="dot" hidden></i>
+    </button>
+    <button type="button" data-view="query" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="M6.5 9.5l3 2.5-3 2.5M12 15h5"/></svg>
+      <span>Query</span><i class="dot" hidden></i>
+    </button>
+    <button type="button" data-view="results" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 9h18M3 14.5h18M9.5 9v11"/></svg>
+      <span>Results</span><i class="dot" hidden></i>
+    </button>
+  </nav>
 </div>
 
 <div class="modal" id="accuse-modal" hidden>
@@ -1073,6 +1277,7 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
     <div class="after-seal">
       <p class="modal-sub" id="victory-sub"></p>
       <div id="victory-body"></div>
+      <p class="teaser" id="victory-teaser" hidden></p>
       <div class="modal-actions" id="victory-actions"></div>
     </div>
   </div>
@@ -1087,6 +1292,16 @@ code { font-family: var(--font-mono); font-size: 0.86em; }
       <button type="button" class="btn" data-close>Cancel</button>
       <button type="button" class="btn-crimson" id="confirm-ok"></button>
     </div>
+  </div>
+</div>
+
+<div class="modal story" id="story-modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card sheet story-card" role="dialog" aria-modal="true" aria-labelledby="story-title" tabindex="-1">
+    <p class="story-kicker" id="story-kicker"></p>
+    <h2 class="story-title" id="story-title"></h2>
+    <div class="story-body" id="story-body"></div>
+    <div class="modal-actions"><button type="button" class="btn-crimson" id="story-go" data-close></button></div>
   </div>
 </div>
 
@@ -2287,6 +2502,110 @@ ORDER BY timestamp;`,
         ],
       ],
     },
+    scene: [
+      "Lestrade came up our stairs at nine with yellow clay on his boots and the look of a man who has been underground. 'They went into the City and Suburban through the floor, Mr. Holmes. Through the floor!'",
+      "Holmes, who had sulked for a week for want of a problem, sat up at once. 'A tunnel is a confession written in clay, Inspector. Somebody dug it, somebody paid for the tools, and somebody had to account for himself at three in the morning.'",
+      "He turned to our new archivist. 'Begin with the police reports. Then ask the register about red hair.'",
+    ],
+    epilogue: [
+      "Fenwick was taken at his lodgings in Golden Lane that afternoon, still in his clay-stiff boots. The French gold was in a left-luggage office at Aldersgate Street station, short only the forty pounds he had paid to Stockdale, and Mr. Lomax, I am told, has given up laudanum and taken up locks.",
+    ],
+    teaser: "A month later a note came across Pall Mall from the one man who never writes to anybody: Mycroft Holmes.",
+    leads: [
+      {
+        title: "The constable's description",
+        objective: "PC Rance saw red hair and a pawnbroker's apron. Find everyone in the register who has both.",
+        found: "'Four names, and one of them a woman, Watson, which PC Rance did not see. Now let us find out which of these gentlemen could pay for a tunnel.'",
+        detect: {
+          maxRows: 4,
+          all: [
+            {
+              p: 130,
+              n: "Ezra Lomax",
+            },
+            {
+              p: 87,
+              n: "Archibald Fenwick",
+            },
+            {
+              p: 65,
+              n: "Duncan Moran",
+            },
+            {
+              p: 159,
+              n: "Mrs. Agatha Rudd",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT name, occupation, hair_color
+FROM persons
+WHERE hair_color LIKE '%red%'
+  AND occupation LIKE '%pawn%';`,
+      },
+      {
+        title: "The ironmonger's three nights",
+        objective: "Hobbs was paid on the nights of 2, 6 and 8 October, in notes from the bank's night counter. Find who drew money there on all three nights.",
+        found: "'Mrs. Marsh pays her music-hall artistes, and she wears no apron. That leaves two red-headed pawnbrokers at the night counter all three nights, and each of them swears he was elsewhere on the night of the robbery. Ask the alibis.'",
+        detect: {
+          maxRows: 20,
+          all: [
+            {
+              p: 87,
+              n: "Archibald Fenwick",
+            },
+            {
+              p: 65,
+              n: "Duncan Moran",
+            },
+            {
+              p: 91,
+              n: "Mrs. Lydia Marsh",
+            },
+            {
+              s: "10-02",
+            },
+            {
+              s: "10-06",
+            },
+            {
+              s: "10-08",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT person_id, amount_pounds, timestamp
+FROM bank_ledgers
+WHERE transaction_type = 'Withdrawal'
+  AND time(timestamp) >= '22:00'
+  AND date(timestamp) IN ('1890-10-02', '1890-10-06', '1890-10-08')
+ORDER BY person_id, timestamp;`,
+      },
+      {
+        title: "An alibi nobody will confirm",
+        objective: "Find which of the two has an alibi that his own witness will not confirm.",
+        found: "'The landlord of the Red Lion will not swear to it, and the landlady heard boots on her stairs at three. Now find the exhibit that ties our man to the tunnel, and the reason a pawnbroker's assistant needed French gold so badly.'",
+        detect: {
+          maxRows: 10,
+          row: [
+            {
+              p: 87,
+              n: "Archibald Fenwick",
+            },
+            {
+              v: 0,
+            },
+            {
+              s: "red lion",
+            },
+          ],
+        },
+        dumpOk: true,
+        sql: `SELECT person_id, stated_location, verified_by_person_id, is_verified
+FROM alibis
+WHERE case_id = 1;`,
+      },
+    ],
   },
   2: {
     numeral: "II",
@@ -2434,6 +2753,99 @@ ORDER BY b.timestamp;`,
         ],
       ],
     },
+    scene: [
+      "Mycroft Holmes had not crossed his brother's threshold in eleven years, and he did not cross it now. He sent a note instead, in a hand I had never seen shake. 'Harrow is dead in the Reading Room. The rules forbid us to notice one another, and yet every member has an alibi and a friend to swear to it. Come.'",
+      "In the cab Holmes was silent as far as Pall Mall. 'An alibi is a story told by two people, Watson. Ask each of them separately, and see whether they tell the same one.'",
+    ],
+    epilogue: [
+      "Colonel Stanmore was arrested on the steps of the Albany. Mr. Albright gave evidence against him in return for the Crown’s forbearance, and Mycroft, who had not raised his voice in the Club in twenty years, moved that the rule of silence be suspended for one afternoon so that the members might congratulate his brother. The motion failed for want of a seconder.",
+    ],
+    teaser: "In December a letter came from Sussex about a butler, a vault, and a crown that had been lost for two hundred years.",
+    leads: [
+      {
+        title: "Each witness's own story",
+        objective: "Join the alibis to themselves: is any witness on record as being somewhere else at the time?",
+        found: "'The Colonel was at chess with Mr. Albright, and Mr. Albright was at the Lyceum with a constable. Two stories, Watson, and only one of them can be true.'",
+        detect: {
+          maxRows: 12,
+          row: [
+            {
+              p: 148,
+              n: "Colonel Hector Stanmore",
+            },
+            {
+              p: 78,
+              n: "Felix Albright",
+            },
+            {
+              s: "lyceum",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT s.name AS suspect, a.stated_location AS suspect_says,
+       w.name AS witness, wa.stated_location AS witness_was
+FROM alibis a
+JOIN persons s ON s.person_id = a.person_id
+JOIN persons w ON w.person_id = a.verified_by_person_id
+JOIN alibis wa ON wa.person_id = a.verified_by_person_id
+              AND wa.case_id = a.case_id
+WHERE a.case_id = 2
+  AND wa.stated_location <> a.stated_location;`,
+      },
+      {
+        title: "A watch stolen at the Lyceum",
+        objective: "Match the police reports to the interviews: whom did PC Murcher question at the Lyceum, and when?",
+        found: "'Twenty to nine, in the crush bar, a mile from Pall Mall. Mr. Albright lied for the Colonel. And the port stood on the landing from 8.32 to 8.38, a few steps from the Strangers' Room, where the Colonel sat alone.'",
+        detect: {
+          maxRows: 6,
+          row: [
+            {
+              p: 78,
+              n: "Felix Albright",
+            },
+            {
+              s: "20:40",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT r.date_time, r.location, p.name AS interviewed, i.transcript
+FROM crime_scene_reports r
+JOIN interviews i ON i.interviewed_by = r.officer_in_charge
+                 AND i.case_id = r.case_id
+JOIN persons p ON p.person_id = i.person_id
+WHERE r.case_id = 2 AND r.location LIKE 'Lyceum%';`,
+      },
+      {
+        title: "The Colonel's money",
+        objective: "Follow the money that went to and from Colonel Stanmore.",
+        found: "'Five hundred pounds a month from an army contractor, and Sir Montague had the figures. A motive, Watson, and a pressing one. Now find the exhibit that puts the poison in his hand.'",
+        detect: {
+          maxRows: 12,
+          row: [
+            {
+              p: 16,
+              n: "Josiah Gorringe",
+            },
+            {
+              p: 148,
+              n: "Colonel Hector Stanmore",
+            },
+            {
+              v: 500,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT payer.name AS paid_by, payee.name AS paid_to, b.amount_pounds, b.timestamp
+FROM bank_ledgers b
+JOIN persons payer ON payer.person_id = b.person_id
+LEFT JOIN persons payee ON payee.person_id = b.recipient_person_id
+WHERE payer.name LIKE '%Stanmore%' OR payee.name LIKE '%Stanmore%'
+ORDER BY b.timestamp;`,
+      },
+    ],
   },
   3: {
     numeral: "III",
@@ -2612,6 +3024,100 @@ WHERE s.name = 'Oliver Penhallow';`,
         ],
       ],
     },
+    scene: [
+      "Reginald Musgrave's letter came by the evening post: three closely written sheets that began with his butler's death and ended with a crown. Holmes read it twice and laughed aloud.",
+      "'He believes the Ritual is nonsense, and his butler proved it was a map. Brunton found a king's ransom, Watson, and somebody helped him lift it out and then let the stone fall.' He handed the letter to our archivist. 'Brunton left a row of figures behind him. Figures are the most honest things in the world, if one knows what they count.'",
+    ],
+    epilogue: [
+      "Penhallow confessed at Lewes. He had meant only to borrow the stones until his books balanced, he said, and Brunton’s death was the slab’s doing, not his. The jury did not agree. Rachel Howells came home from Wales, and what remains of the Stuart crown is at Hurlstone still.",
+    ],
+    teaser: "In January Mycroft called again, in person this time, and the matter was the Empire's.",
+    leads: [
+      {
+        title: "Brunton's figures",
+        objective: "Read the figures in Brunton's pocket-book against the Ritual: each one is the position of a letter.",
+        found: "'Harker. Brunton wrote down the name under which the King's things would go up to London. Now find out who paid Mr. Harker.'",
+        detect: {
+          maxRows: 3,
+          all: [
+            {
+              x: "harker",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `-- Brunton's figures are letter positions in the Ritual
+SELECT substr(description, 51, 1)
+    || substr(description, 118, 1)
+    || substr(description, 161, 1)
+    || substr(description, 99, 1)
+    || substr(description, 134, 1)
+    || substr(description, 362, 1) AS hidden_name
+FROM evidence
+WHERE item_name LIKE '%Ritual%';`,
+      },
+      {
+        title: "The account every dealer paid",
+        objective: "Find the one account that every Stuart-stone dealer paid after Brunton died.",
+        found: "'J. Harker, poste restante, Lewes: thirteen hundred pounds from four dealers. A name with no face, Watson. Follow his money out again.'",
+        detect: {
+          maxRows: 6,
+          row: [
+            {
+              p: 161,
+              n: "J. Harker",
+            },
+            {
+              v: 1310,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, COUNT(DISTINCT b.person_id) AS dealers, SUM(b.amount_pounds) AS total
+FROM bank_ledgers b
+JOIN persons p ON p.person_id = b.recipient_person_id
+WHERE b.person_id IN (SELECT linked_person_id FROM evidence
+                      WHERE case_id = 3 AND item_name LIKE 'Stuart stone%')
+  AND b.timestamp > '1890-12-04'
+GROUP BY p.name
+HAVING COUNT(DISTINCT b.person_id) = 4;`,
+      },
+      {
+        title: "Cash out at Lewes",
+        objective: "Match Mr. Harker's cash withdrawals to deposits made at Hurlstone on the same day, for the same sum.",
+        found: "'Four withdrawals and four deposits, the same day and the same sum every time: Oliver Penhallow, the estate steward. Now ask why a steward needs a king's ransom, and look in his grate.'",
+        detect: {
+          maxRows: 10,
+          all: [
+            {
+              p: 97,
+              n: "Oliver Penhallow",
+            },
+            {
+              v: 180,
+            },
+            {
+              v: 240,
+            },
+            {
+              v: 210,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, d.amount_pounds, d.timestamp
+FROM bank_ledgers d
+JOIN persons p ON p.person_id = d.person_id
+WHERE d.transaction_type = 'Deposit'
+  AND p.residence LIKE '%Hurlstone%'
+  AND EXISTS (SELECT 1 FROM bank_ledgers w
+              WHERE w.person_id = (SELECT person_id FROM persons WHERE name LIKE '%Harker%')
+                AND w.transaction_type = 'Withdrawal'
+                AND w.amount_pounds = d.amount_pounds
+                AND date(w.timestamp) = date(d.timestamp))
+ORDER BY d.timestamp;`,
+      },
+    ],
   },
   4: {
     numeral: "IV",
@@ -2772,6 +3278,105 @@ WHERE a.case_id = 4
         ],
       ],
     },
+    scene: [
+      "Mycroft came to Baker Street himself, which told us how grave the matter was. He lowered himself into the basket chair and spoke of cipher cables to Rome, of Berlin reading them within the week, and of a Herr Kessler at the Langham who received the dullest telegrams in London.",
+      "'Aunt Maud,' he said, with distaste. 'Always Aunt Maud, and always regards to an uncle.' Holmes was already reaching for the archive. 'Nobody writes that much about an uncle, Mycroft. The uncle is the message.'",
+    ],
+    epilogue: [
+      "Miss Stoke made a full statement to Mycroft and was quietly dismissed; her husband’s ship docked in March and she sailed with him. Herr Kessler left the Langham for Hamburg that same evening, a little before Special Branch arrived. Mycroft says the Foreign Office has changed its cipher, and that the new one is much worse.",
+    ],
+    teaser: "In February the marsh below Blackheath gave up a lord, and an old legend came back to life.",
+    leads: [
+      {
+        title: "The uncle's regards",
+        objective: "Decode what follows 'regards to uncle' in the Aunt Maud telegrams into squares on the Yard's map.",
+        found: "'E12, F6 and G9: the bridge in St. James's Park, the gate of the Museum and the Covent Garden piazza, each on the day of its telegram and at the hour it names. Three appointments, Watson. Who kept them?'",
+        detect: {
+          maxRows: 8,
+          all: [
+            {
+              s: "e12",
+            },
+            {
+              s: "f6",
+            },
+            {
+              s: "g9",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT timestamp,
+       'Grid ' || UPPER(SUBSTR(message, -1))
+               || SUBSTR(message, INSTR(LOWER(message), 'regards to uncle ') + 17,
+                         LENGTH(message) - INSTR(LOWER(message), 'regards to uncle ') - 17) AS square
+FROM telegrams
+WHERE case_id = 4
+  AND LOWER(message) LIKE '%regards to uncle %';`,
+      },
+      {
+        title: "The constables' books",
+        objective: "Find who was seen on all three squares, each on the day it was named.",
+        found: "'Miss Harriet Stoke, telegraphist, a few minutes early every time. Mr. Tadcaster crosses the park every evening and keeps two of the three by habit. Now look at the special wire.'",
+        detect: {
+          maxRows: 12,
+          all: [
+            {
+              p: 164,
+              n: "Miss Harriet Stoke",
+            },
+            {
+              s: "e12",
+            },
+            {
+              s: "f6",
+            },
+            {
+              s: "g9",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, l.location, l.timestamp
+FROM location_logs l
+JOIN persons p ON p.person_id = l.person_id
+WHERE p.name = 'Miss Harriet Stoke';`,
+      },
+      {
+        title: "The special wire",
+        objective: "Check who worked the special wire on the nights the three cables went to Rome.",
+        found: "'Only Miss Stoke, on all three nights. She copied the cables and carried them to Kessler herself. Find what she left at the bridge, and what Kessler held over her.'",
+        detect: {
+          maxRows: 6,
+          all: [
+            {
+              p: 79,
+              n: "Walter Brough",
+            },
+          ],
+          row: [
+            {
+              p: 164,
+              n: "Miss Harriet Stoke",
+            },
+            {
+              v: 3,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, COUNT(*) AS leak_nights_on_duty
+FROM location_logs l
+JOIN persons p ON p.person_id = l.person_id
+WHERE l.sight_confirmed_by = 'Duty roster'
+  AND date(l.timestamp) IN (SELECT date(timestamp) FROM telegrams
+                            WHERE case_id = 4 AND message LIKE 'CIPHER%'
+                              AND recipient_id = (SELECT person_id FROM persons
+                                                  WHERE name = 'Sir Edmund Reyne'))
+GROUP BY p.name
+ORDER BY leak_nights_on_duty DESC;`,
+      },
+    ],
   },
   5: {
     numeral: "V",
@@ -2921,6 +3526,93 @@ WHERE case_id = 5
         ],
       ],
     },
+    scene: [
+      "Dr. Morland of Lee Green brought the news himself, pale from a night on the marsh. Lord Varley lay dead on the path below the Hall with the prints of a giant hound beside him, and half of Blackheath swore they had heard the beast.",
+      "'Swore to what hour?' asked Holmes. Morland hesitated. 'That is the strange thing. Nobody agrees.' Holmes smiled the smile I have learned to dread. 'Then we shall take our hour from the one witness who cannot be frightened: the surgeon.'",
+    ],
+    epilogue: [
+      "Stapleford was taken at Marsh Cottage. The hound, a poor half-starved brute daubed with phosphorus, was found chained in the old magazine and now belongs to the lamplighter, who reports that it is afraid of the dark. Seldon was retaken on Shooters Hill and went back to the hulks with a good word from the butler.",
+    ],
+    teaser: "In March the Thames gave up a tally clerk at Wapping, and the river police came to us.",
+    leads: [
+      {
+        title: "The surgeon's hour",
+        objective: "Find the hour Lord Varley died, by the surgeon's reckoning rather than the witnesses'.",
+        found: "'Twenty to eleven: dinner at twenty to eight and three hours' digestion, and his watch stopped at 10.41. Every other hour on that marsh is a frightened man's guess. Now measure the sightings against it.'",
+        detect: {
+          maxRows: 3,
+          row: [
+            {
+              s: "22:40",
+            },
+            {
+              s: "fright",
+            },
+          ],
+        },
+        dumpOk: true,
+        sql: `SELECT *
+FROM autopsy_reports
+WHERE case_id = 5;`,
+      },
+      {
+        title: "Nine minutes",
+        objective: "Measure every sighting from the moment of death. Who was on the marsh path just before it?",
+        found: "'Jack Stapleford, nephew and heir, on the path by the old magazine with a great black dog, nine minutes before the death. And yet his alibi is vouched for. By whom, and for which hours?'",
+        detect: {
+          maxRows: 20,
+          row: [
+            {
+              p: 110,
+              n: "Jack Stapleford",
+            },
+            {
+              s: "marsh path",
+            },
+            {
+              v: -9,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, l.location, l.timestamp,
+       (strftime('%s', l.timestamp) - strftime('%s', a.estimated_tod)) / 60 AS minutes_from_death
+FROM location_logs l
+JOIN autopsy_reports a ON a.case_id = l.case_id
+JOIN persons p ON p.person_id = l.person_id
+WHERE l.case_id = 5
+ORDER BY l.timestamp;`,
+      },
+      {
+        title: "A verified alibi",
+        objective: "Find the sighting that falls inside his alibi's hours, but somewhere else.",
+        found: "'The Railway Tavern from a quarter past ten, says Stapleford, and the landlord agrees, until he is asked when the first whisky was rung up. Find the exhibit that proves when he really came in.'",
+        detect: {
+          maxRows: 6,
+          row: [
+            {
+              p: 110,
+              n: "Jack Stapleford",
+            },
+            {
+              s: "railway tavern",
+            },
+            {
+              s: "marsh path",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, a.stated_location, a.time_window, l.location AS seen_at, l.timestamp
+FROM alibis a
+JOIN location_logs l ON l.person_id = a.person_id AND l.case_id = a.case_id
+JOIN persons p ON p.person_id = a.person_id
+WHERE a.case_id = 5
+  AND strftime('%H:%M', l.timestamp) BETWEEN substr(a.time_window, 1, 5)
+                                         AND substr(a.time_window, 7, 5)
+  AND l.location <> a.stated_location;`,
+      },
+    ],
   },
   6: {
     numeral: "VI",
@@ -3080,6 +3772,131 @@ WHERE e.case_id = 6;`,
         ],
       ],
     },
+    scene: [
+      "Athelney Jones of the Thames Police called on a Sunday evening, which he would never have done had he not been desperate. A tally clerk had been taken from the river at Wapping with his skull broken, and twelve crates of 'tea' in Shed 9 had turned out to be opium.",
+      "'Three hundred men on those docks, Mr. Holmes, and every one of them deaf, blind and asleep.' 'Then we shall not question them,' said Holmes. 'We shall sift them: the gate, the evidence, the register. Three sieves, and whoever passes through all three is your man.'",
+    ],
+    epilogue: [
+      "The Aurora was found aground below Greenwich, empty. Rourke was taken at a lodging-house in Limehouse with the rest of his oilskin on his back. The opium was consigned to the Anglo-Continental Shipping Agency of Mincing Lane, and Holmes wrote that name in his commonplace book and underlined it twice.",
+    ],
+    teaser: "In April a retired sea-captain brought us five orange pips, and the Professor's name was spoken aloud in our sitting room for the first time.",
+    leads: [
+      {
+        title: "The gate register",
+        objective: "List everyone the dock gate register let in on the night of 7 March.",
+        found: "'Eight people through the gate, Watson, Tierney among them. That is the first sieve. Now put them beside the evidence.'",
+        detect: {
+          maxRows: 10,
+          all: [
+            {
+              p: 46,
+              n: "Captain Thomas Weatherby",
+            },
+            {
+              p: 146,
+              n: "Captain Hugh Corby",
+            },
+            {
+              p: 88,
+              n: "Michael Tierney",
+            },
+            {
+              p: 144,
+              n: "Patrick Flynn",
+            },
+            {
+              p: 160,
+              n: "Hans Petersen",
+            },
+            {
+              p: 113,
+              n: "Sam Grady",
+            },
+            {
+              p: 56,
+              n: "Billy Rourke",
+            },
+            {
+              p: 26,
+              n: "Edwin Drayton",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, l.timestamp
+FROM location_logs l
+JOIN persons p ON p.person_id = l.person_id
+WHERE l.case_id = 6
+  AND l.sight_confirmed_by = 'Dock gate register'
+ORDER BY l.timestamp;`,
+      },
+      {
+        title: "Beside the evidence",
+        objective: "Find which of them stood where an exhibit lay, within twenty minutes of the death.",
+        found: "'Four men: Petersen, Rourke, Flynn and Drayton. Two of them live aboard a vessel, and the harbourmaster keeps a register of vessels. Does he know both?'",
+        detect: {
+          maxRows: 4,
+          all: [
+            {
+              p: 160,
+              n: "Hans Petersen",
+            },
+            {
+              p: 56,
+              n: "Billy Rourke",
+            },
+            {
+              p: 144,
+              n: "Patrick Flynn",
+            },
+            {
+              p: 26,
+              n: "Edwin Drayton",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `WITH arrivals AS (
+  SELECT DISTINCT person_id FROM location_logs
+  WHERE case_id = 6 AND sight_confirmed_by = 'Dock gate register'
+)
+SELECT DISTINCT p.name, p.residence
+FROM location_logs l
+JOIN arrivals ar ON ar.person_id = l.person_id
+JOIN evidence e ON e.case_id = l.case_id AND e.found_at = l.location
+JOIN autopsy_reports a ON a.case_id = l.case_id
+JOIN persons p ON p.person_id = l.person_id
+WHERE l.case_id = 6
+  AND ABS(strftime('%s', l.timestamp) - strftime('%s', a.estimated_tod)) <= 20 * 60;`,
+      },
+      {
+        title: "The launch with no lights",
+        objective: "Find the one who belongs to a vessel the harbourmaster never registered.",
+        found: "'Billy Rourke, deckhand of the steam launch Aurora, which lay off Shed 9 with no lights and was off Wapping when Tierney went into the water. Now the exhibit that ties him to the shed.'",
+        detect: {
+          maxRows: 3,
+          row: [
+            {
+              p: 56,
+              n: "Billy Rourke",
+            },
+            {
+              s: "aurora",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT name, residence
+FROM persons
+WHERE residence LIKE 'Aboard the %'
+  AND residence NOT IN (SELECT p.residence
+                        FROM location_logs l
+                        JOIN persons p ON p.person_id = l.person_id
+                        WHERE l.sight_confirmed_by = 'Harbourmaster')
+  AND person_id IN (SELECT person_id FROM location_logs
+                    WHERE case_id = 6 AND sight_confirmed_by = 'Dock gate register');`,
+      },
+    ],
   },
   7: {
     numeral: "VII",
@@ -3241,6 +4058,93 @@ WHERE e.case_id = 7
         ],
       ],
     },
+    scene: [
+      "Henry Wexford of Richmond sat in our client’s chair, turning an envelope over and over in his hands. Inside were five dried orange pips. Two other men had received the same envelope this spring, and both were dead within the week.",
+      "'They came from Portsmouth, Mr. Holmes, from a chandler who swears he only posts what he is sent.' Holmes held a pip up to the lamp. 'Then someone sent it to him, and someone told that person to. Every chain has a first link, and we have two days to find it.'",
+    ],
+    epilogue: [
+      "Mr. Lucius Fenn was arrested at Vere Street with the brass plate still in his drawer, and Wexford lived to give his evidence after all. But Fenn had been paid twenty-five pounds by the Clarion Assurance Society, and Holmes sat late that night over a sheet of paper on which three companies were joined to a circle in the middle.",
+    ],
+    teaser: "A week later, somebody shot a man in Holmes’s own chair.",
+    leads: [
+      {
+        title: "Who told Quint?",
+        objective: "Follow the warnings back one link: who sent Silas Quint his orders?",
+        found: "'Mrs. Dorr of Liverpool, five shillings a time, and somebody told her as well. Keep walking the chain back, Watson, one telegram at a time.'",
+        detect: {
+          maxRows: 6,
+          row: [
+            {
+              p: 25,
+              n: "Mrs. Emmeline Dorr",
+            },
+            {
+              p: 98,
+              n: "Silas Quint",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT s.name AS sender, r.name AS recipient, t.message, t.timestamp
+FROM telegrams t
+JOIN persons s ON s.person_id = t.sender_id
+JOIN persons r ON r.person_id = t.recipient_id
+WHERE r.name = 'Silas Quint';`,
+      },
+      {
+        title: "The first link",
+        objective: "Walk the chain back three links from every warning. Who stands behind all three?",
+        found: "'O. Pyke, agent, of 9 Vere Street, behind every warning, and wired Delivered after each one. Captain Hoyt turns up behind one, with a cargo of timber. But Mr. Pyke has no face. Who else lives at his address?'",
+        detect: {
+          maxRows: 4,
+          row: [
+            {
+              p: 135,
+              n: "O. Pyke",
+            },
+            {
+              v: 3,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT h.name AS ordered_by, COUNT(DISTINCT t1.recipient_id) AS warnings_behind
+FROM telegrams t1
+JOIN telegrams t2 ON t2.recipient_id = t1.sender_id
+                 AND date(t2.timestamp) = date(t1.timestamp) AND t2.timestamp < t1.timestamp
+JOIN telegrams t3 ON t3.recipient_id = t2.sender_id
+                 AND date(t3.timestamp) = date(t2.timestamp) AND t3.timestamp < t2.timestamp
+JOIN telegrams t4 ON t4.recipient_id = t3.sender_id
+                 AND date(t4.timestamp) = date(t3.timestamp) AND t4.timestamp < t3.timestamp
+JOIN persons h ON h.person_id = t4.sender_id
+WHERE t1.case_id = 7 AND t1.message LIKE 'Five pips%'
+GROUP BY h.name
+ORDER BY warnings_behind DESC;`,
+      },
+      {
+        title: "9 Vere Street",
+        objective: "Find who shares O. Pyke’s address.",
+        found: "'A landlady who has never seen her two tenants together, and a solicitor who is said to let Mr. Pyke his back office. Find the exhibit that unmasks Mr. Pyke, and the reason three men had to die.'",
+        detect: {
+          maxRows: 4,
+          all: [
+            {
+              p: 15,
+              n: "Lucius Fenn",
+            },
+            {
+              p: 155,
+              n: "Mrs. Hannah Gill",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT b.name, b.occupation
+FROM persons a
+JOIN persons b ON b.residence = a.residence AND b.person_id <> a.person_id
+WHERE a.name = 'O. Pyke';`,
+      },
+    ],
   },
   8: {
     numeral: "VIII",
@@ -3385,6 +4289,105 @@ WHERE payee.name = 'Joseph Pardoe';`,
         ],
       ],
     },
+    scene: [
+      "I shall not soon forget the sound of the glass. We came home late to find Lestrade on our stairs and Lionel Quarrie dead in Holmes’s own chair by the window, a bullet through him and not a shot heard in the street. The window of the empty house opposite stood open.",
+      "Holmes looked at the chair for a long time. 'He was waiting to give me the Professor's names, Watson, and somebody across that street knew it.' Then, to our archivist: 'Everyone in Baker Street swears he never moved. Put their movements in order, and we shall see.'",
+    ],
+    epilogue: [
+      "Pardoe was taken on the rank the next morning, his cape gone and his horse still unwatered, and the air-gun went to the Yard's Black Museum. Colonel Moran had played whist all evening at the Bagatelle, and Holmes did not sleep. 'They will try again, Watson, and next time they will not miss.'",
+    ],
+    teaser: "Eight days later Holmes came in by the back garden with bleeding knuckles and asked whether I had any objection to air-guns.",
+    leads: [
+      {
+        title: "Sightings in order",
+        objective: "Set each person's sightings in order, beside the place where each was seen before.",
+        found: "'Now they move, Watson. A sighting somewhere new means the one before it was the last moment a man stood where he claims he stood all evening. Measure each departure against the shot at 10.17.'",
+        detect: {
+          maxRows: 40,
+          row: [
+            {
+              p: 106,
+              n: "Billy Parsons",
+            },
+            {
+              s: "221b baker street, hall",
+            },
+            {
+              s: "221b baker street, kitchen",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, l.timestamp, l.location,
+       LAG(l.location) OVER (PARTITION BY l.person_id ORDER BY l.timestamp) AS prev_location
+FROM location_logs l
+JOIN persons p ON p.person_id = l.person_id
+WHERE l.case_id = 8
+ORDER BY p.name, l.timestamp;`,
+      },
+      {
+        title: "Two minutes",
+        objective: "Find who was last seen at his post exactly two minutes before the shot.",
+        found: "'Joseph Pardoe, cab driver, on stand fourteen at 10.15, and next seen coming out of the mews behind Camden House at 10.24. Two minutes is ample time to cross the road.'",
+        detect: {
+          maxRows: 12,
+          row: [
+            {
+              p: 42,
+              n: "Joseph Pardoe",
+            },
+            {
+              s: "stand 14",
+            },
+            {
+              s: "blandford",
+            },
+            {
+              v: 2,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `WITH moves AS (
+  SELECT p.name, l.location, l.timestamp,
+         LAG(l.location)  OVER (PARTITION BY l.person_id ORDER BY l.timestamp) AS prev_location,
+         LAG(l.timestamp) OVER (PARTITION BY l.person_id ORDER BY l.timestamp) AS prev_time
+  FROM location_logs l
+  JOIN persons p ON p.person_id = l.person_id
+  WHERE l.case_id = 8
+)
+SELECT m.name, m.prev_location, m.prev_time, m.location, m.timestamp,
+       (strftime('%s', a.estimated_tod) - strftime('%s', m.prev_time)) / 60 AS minutes_before_shot
+FROM moves m
+JOIN autopsy_reports a ON a.case_id = 8
+WHERE m.location <> m.prev_location
+  AND m.prev_time <= a.estimated_tod
+ORDER BY minutes_before_shot;`,
+      },
+      {
+        title: "The cabman's wages",
+        objective: "Find out who pays Joseph Pardoe.",
+        found: "'The Anglo-Continental Shipping Agency, Watson: the people whose opium Tierney would not sign for. The Professor's web reaches all the way to our own front window. Now the exhibit from Camden House.'",
+        detect: {
+          maxRows: 5,
+          row: [
+            {
+              s: "anglo-continental",
+            },
+            {
+              p: 42,
+              n: "Joseph Pardoe",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT payer.name AS paid_by, payee.name AS paid_to, b.amount_pounds, b.timestamp
+FROM bank_ledgers b
+JOIN persons payer ON payer.person_id = b.person_id
+JOIN persons payee ON payee.person_id = b.recipient_person_id
+WHERE payee.name = 'Joseph Pardoe';`,
+      },
+    ],
   },
   9: {
     numeral: "IX",
@@ -3565,6 +4568,115 @@ WHERE case_id = 9
         ],
       ],
     },
+    scene: [
+      "Holmes came in by the back garden with his knuckles bleeding, closed the shutters, and told me that three times that day the Professor’s people had tried for him. He was leaving for the Continent that night.",
+      "'He works through three companies, Watson: a shipping agency, a picture gallery and an assurance society. On Monday Patterson takes them all. But the man at their centre will not be in London on Monday.' He pushed the archive towards our archivist. 'Find me the one name that all three companies pay, and that Patterson did not put there.'",
+    ],
+    epilogue: [
+      "Patterson took the gang on the Monday. I had a letter from Meiringen in the first week of May, and then a note in Holmes’s hand on a ledge above the Falls, and then nothing. The Colonel was never taken. I put away my pen, and did not expect to take it up again.",
+    ],
+    teaser: "In June a parcel of ledgers came back from Florence, annotated in a hand I knew very well.",
+    leads: [
+      {
+        title: "Three companies",
+        objective: "Find who is paid by all three of the Professor's companies.",
+        found: "'Colonel Moran, Victor Lynch and Hugh Bannister are paid by all three. One of them is Patterson's own man.'",
+        detect: {
+          maxRows: 4,
+          all: [
+            {
+              p: 24,
+              n: "Colonel Sebastian Moran",
+            },
+            {
+              p: 34,
+              n: "Hugh Bannister",
+            },
+            {
+              p: 72,
+              n: "Victor Lynch",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT name, status
+FROM persons
+WHERE person_id IN (
+  SELECT recipient_person_id FROM bank_ledgers
+  WHERE person_id = (SELECT person_id FROM persons WHERE name = 'Anglo-Continental Shipping Agency')
+    AND transaction_type = 'Cheque'
+  INTERSECT
+  SELECT recipient_person_id FROM bank_ledgers
+  WHERE person_id = (SELECT person_id FROM persons WHERE name = 'Westminster Fine Art Gallery')
+    AND transaction_type = 'Cheque'
+  INTERSECT
+  SELECT recipient_person_id FROM bank_ledgers
+  WHERE person_id = (SELECT person_id FROM persons WHERE name = 'Clarion Assurance Society')
+    AND transaction_type = 'Cheque'
+);`,
+      },
+      {
+        title: "Patterson's officers",
+        objective: "Strike the Yard's undercover officers off the list.",
+        found: "'Bannister goes; he is Patterson's. Lynch swears he is Patterson's too, but the register says otherwise. Two names remain, Watson. Which of them is paid like a master?'",
+        detect: {
+          maxRows: 2,
+          all: [
+            {
+              p: 24,
+              n: "Colonel Sebastian Moran",
+            },
+            {
+              p: 72,
+              n: "Victor Lynch",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT recipient_person_id FROM bank_ledgers
+WHERE person_id = (SELECT person_id FROM persons WHERE name = 'Anglo-Continental Shipping Agency')
+  AND transaction_type = 'Cheque'
+INTERSECT
+SELECT recipient_person_id FROM bank_ledgers
+WHERE person_id = (SELECT person_id FROM persons WHERE name = 'Westminster Fine Art Gallery')
+  AND transaction_type = 'Cheque'
+INTERSECT
+SELECT recipient_person_id FROM bank_ledgers
+WHERE person_id = (SELECT person_id FROM persons WHERE name = 'Clarion Assurance Society')
+  AND transaction_type = 'Cheque'
+EXCEPT
+SELECT person_id FROM persons WHERE status = 'Undercover (Scotland Yard)';`,
+      },
+      {
+        title: "Master or servant",
+        objective: "Count the payments of a hundred pounds or more that each of them received.",
+        found: "'Nine fees of a hundred and fifty pounds, every one to Colonel Moran. Lynch is a clerk who tells lies; the Colonel is the Professor's chief of staff. Find what he signed.'",
+        detect: {
+          maxRows: 15,
+          row: [
+            {
+              p: 24,
+              n: "Colonel Sebastian Moran",
+            },
+            {
+              v: 9,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name,
+       SUM(CASE WHEN b.amount_pounds >= 100 THEN 1 ELSE 0 END) AS fees_of_100_or_more,
+       SUM(b.amount_pounds) AS total_paid
+FROM bank_ledgers b
+JOIN persons c ON c.person_id = b.person_id
+JOIN persons p ON p.person_id = b.recipient_person_id
+WHERE c.status = 'Registered company'
+  AND b.transaction_type = 'Cheque'
+  AND b.timestamp < '1891-04-25'
+GROUP BY p.name
+ORDER BY total_paid DESC;`,
+      },
+    ],
   },
   10: {
     numeral: "X",
@@ -3774,8 +4886,145 @@ WHERE case_id = 10
         ],
       ],
     },
+    scene: [
+      "The Professor’s fortune had not gone over the Falls with him. Twelve thousand pounds ran out of his companies the day after Reichenbach, and Walter Penrose, the one clerk who could have traced it, was found dead with strychnine in his cocoa.",
+      "Mycroft sent every ledger in London to a correspondent in Florence who signs himself only 'S.' They came back with a single line, in a hand I knew better than my own: 'Follow the money until it stops, Watson. Then read what the man who stopped it has written.'",
+    ],
+    epilogue: [
+      "Lionel Ashby was arrested at his office in Throgmorton Street with eleven thousand pounds in an account he believed no one could find. The money went to the Treasury, less the hundred pounds that Mycroft, with unusual sentiment, allowed St. Bride’s to keep.",
+      "As for S. of Florence, he has asked me to say nothing yet. I shall keep his secret a little longer. The casebook, at last, is closed.",
+    ],
+    teaser: null,
+    leads: [
+      {
+        title: "Where the money stops",
+        objective: "Follow the twelve thousand pounds down every branch until it stops.",
+        found: "'Castellan, three private accounts, the Ludgate Trust, each keeping its little commission; and at the fourth step L. A. Byrne, poste restante, with eleven thousand pounds. A name with no face again, Watson. Read his telegrams.'",
+        detect: {
+          maxRows: 12,
+          row: [
+            {
+              p: 36,
+              n: "L. A. Byrne",
+            },
+            {
+              v: 11000,
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `WITH RECURSIVE trail(person_id, depth) AS (
+  SELECT person_id, 0 FROM persons
+  WHERE name IN ('Anglo-Continental Shipping Agency', 'Westminster Fine Art Gallery', 'Clarion Assurance Society')
+  UNION
+  SELECT b.recipient_person_id, t.depth + 1
+  FROM bank_ledgers b JOIN trail t ON b.person_id = t.person_id
+  WHERE b.recipient_person_id IS NOT NULL AND b.timestamp >= '1891-05-05' AND t.depth < 10
+  LIMIT 1000
+)
+SELECT p.name, MIN(t.depth) AS steps_down,
+       (SELECT COALESCE(SUM(amount_pounds), 0) FROM bank_ledgers
+         WHERE recipient_person_id = t.person_id AND timestamp >= '1891-05-05') AS received
+FROM trail t
+JOIN persons p ON p.person_id = t.person_id
+GROUP BY t.person_id, p.name
+ORDER BY steps_down;`,
+      },
+      {
+        title: "The oldest code",
+        objective: "Read L. A. Byrne's telegrams the way a schoolboy reads a valentine.",
+        found: "'A-S-H-B-Y, three times over. Lionel Ashby, stockbroker, who told us during the Musgrave affair that Penhallow's bonds had sunk with Barings. Where was Mr. Ashby on the 20th of May?'",
+        detect: {
+          maxRows: 5,
+          all: [
+            {
+              x: "ashby",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `WITH RECURSIVE words(telegram_id, rest, initials) AS (
+  SELECT telegram_id, message || ' ', ''
+  FROM telegrams
+  WHERE sender_id = (SELECT person_id FROM persons WHERE name = 'L. A. Byrne')
+  UNION ALL
+  SELECT telegram_id, LTRIM(SUBSTR(rest, INSTR(rest, ' ') + 1)), initials || UPPER(SUBSTR(rest, 1, 1))
+  FROM words
+  WHERE rest <> ''
+  LIMIT 1000
+)
+SELECT initials FROM words WHERE rest = '';`,
+      },
+      {
+        title: "The 20th of May",
+        objective: "Find whose unverified alibi for the 20th is broken by a sighting at Penrose's door.",
+        found: "'The Reform Club, says Ashby, and the porter never saw him. He was at Penrose's door at five past nine, and strychnine takes twenty minutes. Find the exhibit that ties his name to the poison.'",
+        detect: {
+          maxRows: 10,
+          row: [
+            {
+              p: 38,
+              n: "Lionel Ashby",
+            },
+            {
+              s: "change alley",
+            },
+            {
+              s: "reform club",
+            },
+          ],
+        },
+        dumpOk: false,
+        sql: `SELECT p.name, a.stated_location, a.is_verified, l.location AS seen_at, l.timestamp
+FROM alibis a
+JOIN persons p ON p.person_id = a.person_id
+JOIN location_logs l ON l.person_id = a.person_id AND l.case_id = a.case_id
+WHERE a.case_id = 10
+  AND a.is_verified = 0
+  AND l.location <> a.stated_location
+  AND date(l.timestamp) = '1891-05-20';`,
+      },
+    ],
   },
 };
+
+const PROLOGUE = {
+  kicker: "Prologue",
+  title: "The Archive at Scotland Yard",
+  paragraphs: [
+    "London, October 1890. Scotland Yard has done something remarkable: every report, statement, ledger and telegram it holds has been bound into a single archive, and the archive answers any question put to it in a strict and curious grammar that the clerks call SQL.",
+    "Holmes, who thinks little of the official force and less of its paperwork, was delighted. 'At last, Watson, a witness who cannot lie, forget or flatter. It can only be asked badly.' He has engaged an archivist to do the asking. That is you.",
+    "Ten cases wait in the casebook, from a pawnshop in the City to the Reichenbach Falls. In each one, follow the lines of inquiry as they open, and when you can name the culprit, the exhibit that proves it and the motive, submit your deduction. Close a case and the next one is yours.",
+  ],
+  button: "Open Case I",
+};
+
+/* Lines of inquiry: does a query result show what a line asks for? (src/leads.js) */
+function leadCellMatches(token, value, column) {
+  if (token.p !== undefined) {
+    if (typeof value === 'string') return value === token.n;
+    return typeof value === 'number' && value === token.p
+      && /person|suspect|sender|recipient|victim|witness|^who$|^id$/i.test(column);
+  }
+  if (token.v !== undefined) return typeof value === 'number' && Math.abs(value - token.v) < 1e-9;
+  if (typeof value !== 'string') return false;
+  const text = value.toLowerCase();
+  return token.x !== undefined ? text.trim() === token.x : text.includes(token.s);
+}
+
+function leadSetMatches(sig, set) {
+  if (!set.rows.length || set.total > (sig.maxRows || 12)) return false;
+  const cols = set.columns;
+  const inRow = (row, token) => row.some((value, i) => leadCellMatches(token, value, cols[i]));
+  if (sig.all && !sig.all.every((token) => set.rows.some((row) => inRow(row, token)))) return false;
+  if (sig.row && !set.rows.some((row) => sig.row.every((token) => inRow(row, token)))) return false;
+  return true;
+}
+
+function leadFound(detect, sets) {
+  const signatures = Array.isArray(detect) ? detect : [detect];
+  return sets.some((set) => signatures.some((sig) => leadSetMatches(sig, set)));
+}
 
 /* =============================================================================
    Configuration
@@ -4016,6 +5265,9 @@ const state = {
   busy: false,
   runSerial: 0,
   guideTier: null,
+  caret: { start: 0, end: 0 },
+  backArmed: false,
+  storyAfter: null,
   lastRun: null,
   historyScope: 'case',
   historyCursor: -1,
@@ -4034,7 +5286,7 @@ class SleuthError extends Error {
 }
 
 function blankCaseProgress() {
-  return { hintsRevealed: 0, attempts: [], solved: false, solvedAt: null, openedAt: null, queries: 0 };
+  return { hintsRevealed: 0, attempts: [], solved: false, solvedAt: null, openedAt: null, queries: 0, leads: [], sceneSeen: false };
 }
 
 function perCase(make) {
@@ -4045,6 +5297,7 @@ function defaultProgress() {
   return {
     version: 2,
     activeCase: 1,
+    prologueSeen: false,
     cases: perCase(blankCaseProgress),
     notes: perCase(() => ''),
     drafts: perCase(() => null),
@@ -4083,9 +5336,11 @@ function migrateLegacy(old) {
       solvedAt: c.solvedAt || null,
       openedAt: c.openedAt || null,
       queries: Number(c.queries) || 0,
+      leads: [],
+      sceneSeen: Boolean(c.openedAt),
     };
   }
-  return { version: 2, activeCase: old.activeCase, cases, notes: old.notes || {}, drafts: old.drafts || {}, history: old.history || [] };
+  return { version: 2, activeCase: old.activeCase, prologueSeen: true, cases, notes: old.notes || {}, drafts: old.drafts || {}, history: old.history || [] };
 }
 
 function loadProgress() {
@@ -4099,6 +5354,7 @@ function loadProgress() {
   for (const id of CASE_IDS) {
     base.cases[id] = Object.assign(blankCaseProgress(), saved.cases && saved.cases[id]);
     if (!Array.isArray(base.cases[id].attempts)) base.cases[id].attempts = [];
+    if (!Array.isArray(base.cases[id].leads)) base.cases[id].leads = [];
     base.notes[id] = typeof (saved.notes && saved.notes[id]) === 'string' ? saved.notes[id] : '';
     base.drafts[id] = typeof (saved.drafts && saved.drafts[id]) === 'string' ? saved.drafts[id] : null;
   }
@@ -4106,6 +5362,7 @@ function loadProgress() {
     ? saved.history.filter((h) => h && typeof h.sql === 'string' && CASE_IDS.includes(h.caseId)).slice(0, HISTORY_LIMIT)
     : [];
   base.activeCase = CASE_IDS.includes(saved.activeCase) ? saved.activeCase : 1;
+  base.prologueSeen = saved.prologueSeen === true;
   return base;
 }
 
@@ -4880,6 +6137,7 @@ function resultsMetaText(run) {
 function renderResults(run) {
   const host = $('#rp-results');
   host.replaceChildren();
+  (run.developments || []).forEach((index, k, all) => host.append(renderDevelopment(run.caseId, index, { last: k === all.length - 1 })));
   run.sets.forEach((set, i) => host.append(renderTable(set, i, run.sets.length)));
   if (run.error) host.append(renderError(run));
   else if (!run.sets.length) host.append(el('p', { class: 'empty-rows' }, 'The query ran, but it asked nothing, so nothing came back.'));
@@ -4894,7 +6152,9 @@ function renderResultsPlaceholder() {
   const host = $('#rp-results');
   host.replaceChildren(el('div', { class: 'placeholder' },
     el('h3', {}, 'Your results will be laid out here'),
-    el('p', {}, `Write a query above and press Run query, or ${MOD_KEY} + Enter. Start with the case file, then follow wherever the records lead.`),
+    el('p', {}, isPhone()
+      ? 'Write a query on the Query tab and tap Run. Start with the case file, then follow wherever the records lead.'
+      : `Write a query above and press Run query, or ${MOD_KEY} + Enter. Start with the case file, then follow wherever the records lead.`),
     el('p', {}, `While a query runs, the button turns to Stop, and anything still running after ${QUERY_LIMITS.watchdogMs / 1000} seconds is stopped for you.`),
     el('button', { type: 'button', class: 'btn', onclick: () => { setEditorText(`SELECT *\nFROM cases\nWHERE case_id = ${id};`, { undoable: true }); runEditor(); } }, 'Read the case file')));
   $('#results-meta').textContent = '';
@@ -4974,10 +6234,13 @@ function syncEditorScroll() {
 function insertText(ta, text) {
   ta.focus();
   let done = false;
-  try {
-    done = document.execCommand('insertText', false, text);
-  } catch (err) {
-    done = false;
+  // Only type through the browser when the editor really has focus (on a phone it may be hidden).
+  if (document.activeElement === ta) {
+    try {
+      done = document.execCommand('insertText', false, text);
+    } catch (err) {
+      done = false;
+    }
   }
   if (!done) {
     ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end');
@@ -5011,6 +6274,7 @@ function insertAtCursor(text) {
   const ta = editorInput();
   insertText(ta, text);
   flashEditor();
+  if (isPhone()) toast(`Added “${text}” to the query`);
 }
 
 /* Field Guide and hint snippets land at the cursor, on lines of their own. */
@@ -5025,6 +6289,7 @@ function insertCheatSheetSnippet(sql) {
   insertText(ta, text);
   flashEditor();
   toast('Inserted into the editor at the cursor');
+  showOnPhone('query');
 }
 
 function selectedLineRange(ta) {
@@ -5093,6 +6358,13 @@ function initEditor() {
   ta.addEventListener('scroll', syncEditorScroll, { passive: true });
   ta.addEventListener('keydown', onEditorKeydown);
   ta.addEventListener('blur', () => { state.tabReleased = false; });
+  ['keyup', 'click', 'select', 'input', 'blur'].forEach((type) => ta.addEventListener(type, rememberCaret));
+  // On a phone, typing docks the keyword strip above the keyboard (see the .editing styles).
+  ta.addEventListener('focus', () => { clearTimeout(state.timers.editing); $('#app').classList.add('editing'); });
+  ta.addEventListener('blur', () => { state.timers.editing = setTimeout(() => $('#app').classList.remove('editing'), 150); });
+  const wrapForScreen = () => { ta.wrap = isPhone() ? 'soft' : 'off'; refreshEditor(); };
+  wrapForScreen();
+  PHONE_QUERY.addEventListener('change', wrapForScreen);
   if (window.ResizeObserver) new ResizeObserver(syncEditorScroll).observe(ta);
   $('#mod-key').textContent = MOD_KEY;
   $('#editor-help').replaceChildren(
@@ -5151,6 +6423,8 @@ async function runSql(sql, { selection = false } = {}) {
     setBusy(false);
   }
   run.selection = selection;
+  run.caseId = caseId;
+  run.developments = checkLeads(caseId, run);
   state.lastRun = run;
   if (!(run.error && run.error.kind === 'empty')) {
     state.progress.cases[caseId].queries += 1;
@@ -5159,6 +6433,15 @@ async function runSql(sql, { selection = false } = {}) {
   saveDraft();
   showResultsView('results');
   renderResults(run);
+  if (run.developments.length) {
+    saveProgress();
+    if (caseId === state.activeCase) {
+      renderBriefing();
+      renderInquiryStrip();
+    }
+    flagView('case');
+  }
+  showOnPhone('results');
   state.runSerial += 1;
   $('#results-body').dataset.runs = String(state.runSerial);
 }
@@ -5220,6 +6503,7 @@ function loadFromHistory(sql) {
   setEditorText(sql, { undoable: true });
   toggleHistory(false);
   flashEditor();
+  showOnPhone('query');
 }
 
 function toggleHistory(open) {
@@ -5281,6 +6565,7 @@ function codeBlock(sql, { insert = false, load = false } = {}) {
       setEditorText(sql, { undoable: true });
       flashEditor();
       toast('Loaded into the editor');
+      showOnPhone('query');
     } }, 'Load into editor'));
   }
   if (actions.childNodes.length) wrap.append(actions);
@@ -5301,7 +6586,9 @@ function renderBriefing() {
     el('h2', { class: 'case-title' }, row.title),
     el('p', { class: 'case-where' }, row.location, el('br'), formatLongDate(row.date)),
     el('p', { class: 'case-difficulty' }, 'Difficulty', stars(c.difficulty, { label: false }), el('span', {}, `${c.difficulty} of 10`)),
+    el('button', { type: 'button', class: 'btn btn-small replay', onclick: () => showScene(id) }, 'Read the opening scene again'),
     paragraphs,
+    renderLeadsSection(),
     el('section', { class: 'task', 'aria-label': 'Your task' },
       el('h3', {}, 'Your task'),
       el('p', {}, c.objective),
@@ -5536,6 +6823,7 @@ function pinToNotebook() {
   state.progress.notes[id] = current ? `${current}\n\n${pinned}\n` : `${pinned}\n`;
   saveProgress();
   selectDossierTab('notes');
+  showOnPhone('case');
   renderNotebook();
   const page = $('#notes-input');
   page.scrollTop = page.scrollHeight;
@@ -5712,6 +7000,8 @@ function renderSolution(caseId) {
       el('div', {}, el('dt', {}, 'Hints used'), el('dd', {}, `${cp.hintsRevealed} of ${c.hints.length}`)),
       el('div', {}, el('dt', {}, 'Wrong deductions'), el('dd', {}, String(wrong))),
       el('div', {}, el('dt', {}, 'Time on the case'), el('dd', {}, formatDuration(cp.solvedAt - (cp.openedAt || cp.solvedAt))))),
+    el('h4', {}, 'Afterwards'),
+    c.epilogue.map((p) => el('p', { class: 'sum epilogue' }, p)),
     el('h4', {}, "Holmes's summation"),
     c.solution.summary.map((p) => el('p', { class: 'sum' }, p)),
     el('h4', {}, 'The chain of evidence'),
@@ -5730,6 +7020,9 @@ function showVictory(caseId, { unlocked = null } = {}) {
   else if (unlocked) sub += `. Case ${CASEBOOK[unlocked].numeral} is now unlocked.`;
   $('#victory-sub').textContent = sub;
   $('#victory-body').replaceChildren(renderSolution(caseId));
+  const teaser = $('#victory-teaser');
+  teaser.textContent = c.teaser || '';
+  teaser.hidden = !c.teaser;
   const open = (id) => !state.progress.cases[id].solved && isUnlocked(id);
   const nextOpen = CASE_IDS.find((id) => id > caseId && open(id)) || CASE_IDS.find(open);
   const actions = $('#victory-actions');
@@ -5845,7 +7138,10 @@ function renderCasePicker() {
     state.unlockAll ? el('p', { class: 'cp-note' }, 'Every case is unlocked for this visit.') : null,
     acts.map((act) => el('section', { class: 'cp-act', 'aria-label': `Act ${ACT_NUMERALS[act]}: ${ACT_TITLES[act]}` },
       el('h3', { class: 'cp-act-title' }, `Act ${ACT_NUMERALS[act]}: ${ACT_TITLES[act]}`),
-      el('ul', { class: 'cp-list' }, CASE_IDS.filter((cid) => CASEBOOK[cid].act === act).map(caseMenuItem)))));
+      el('ul', { class: 'cp-list' }, CASE_IDS.filter((cid) => CASEBOOK[cid].act === act).map(caseMenuItem)))),
+    el('div', { class: 'cp-foot' }, el('button', {
+      type: 'button', class: 'btn-quiet-dark', onclick: () => { togglePicker(false); showPrologue({ replay: true }); },
+    }, 'Read the prologue again')));
 }
 
 function togglePicker(open) {
@@ -5875,7 +7171,7 @@ function pickCase(id) {
 }
 
 function pickerKeys(e) {
-  const items = $$('.cp-item', $('#cp-menu'));
+  const items = $$('.cp-item, .cp-foot button', $('#cp-menu'));
   const i = items.indexOf(document.activeElement);
   if (e.key === 'Escape') {
     e.preventDefault();
@@ -5903,7 +7199,7 @@ function pickerKeys(e) {
 
 function renderCasebookProgress() {
   const solved = CASE_IDS.filter((id) => state.progress.cases[id].solved).length;
-  $('#casebook-count').textContent = `${solved} of ${CASE_IDS.length} cases closed`;
+  setChildren($('#casebook-count'), `${solved} of ${CASE_IDS.length}`, el('span', { class: 'wide-only' }, ' cases'), ' closed');
   const seals = [];
   CASE_IDS.forEach((id, i) => {
     if (i > 0 && CASEBOOK[id].act !== CASEBOOK[CASE_IDS[i - 1]].act) seals.push(el('span', { class: 'act-gap' }));
@@ -5929,7 +7225,9 @@ function switchCase(id) {
 /* loadCaseData: lay out the dossier and the workbench for one case: the picker, briefing and
    hints, notebook, history, deductions, the matching Field Guide level, and the editor. */
 function loadCaseData(caseId) {
+  setView('case');
   renderCasePicker();
+  renderInquiryStrip();
   renderBriefing();
   renderNotebook();
   renderHintButton();
@@ -5941,6 +7239,271 @@ function loadCaseData(caseId) {
   setEditorText(typeof draft === 'string' && draft.trim() ? draft : CASEBOOK[caseId].starter);
   renderResultsPlaceholder();
   showResultsView('results');
+  maybeShowScene(caseId);
+}
+
+/* =============================================================================
+   Story: the prologue, each case's opening scene, and the lines of inquiry that open
+   one after another as the archivist's queries turn up the facts
+   ============================================================================= */
+
+/* One page of Watson's journal, in a dialog. onClose runs once, however the page is closed. */
+function showStory({ kicker, title, paragraphs, button, sign = true, onClose = null }) {
+  $('#story-kicker').textContent = kicker;
+  $('#story-title').textContent = title;
+  setChildren($('#story-body'),
+    paragraphs.map((p) => el('p', {}, p)),
+    sign ? el('p', { class: 'story-sign' }, 'From the journal of John H. Watson, M.D.') : null);
+  $('#story-go').textContent = button;
+  state.storyAfter = onClose;
+  const modal = $('#story-modal');
+  modal.classList.remove('play');
+  openModal('story-modal', { focusCard: true });
+  void modal.offsetWidth;
+  modal.classList.add('play');
+}
+
+function showPrologue({ replay = false } = {}) {
+  showStory({
+    kicker: PROLOGUE.kicker,
+    title: PROLOGUE.title,
+    paragraphs: PROLOGUE.paragraphs,
+    button: replay ? 'Back to the casebook' : PROLOGUE.button,
+    sign: false,
+    onClose: replay ? null : () => {
+      state.progress.prologueSeen = true;
+      saveProgress();
+      maybeShowScene(state.activeCase);
+    },
+  });
+}
+
+function showScene(caseId) {
+  const c = CASEBOOK[caseId];
+  showStory({
+    kicker: `Case ${c.numeral} · ${formatLongDate(caseRecord(caseId).date)}`,
+    title: caseTitle(caseId),
+    paragraphs: c.scene,
+    button: 'Take up the case',
+    onClose: () => {
+      state.progress.cases[caseId].sceneSeen = true;
+      saveProgress();
+    },
+  });
+}
+
+function maybeShowScene(caseId) {
+  if (state.progress.prologueSeen && !state.progress.cases[caseId].sceneSeen && $('#story-modal').hidden) showScene(caseId);
+}
+
+function isLeadFound(caseId, i) {
+  return Boolean(state.progress.cases[caseId].leads[i]);
+}
+
+function leadsFoundCount(caseId) {
+  return CASEBOOK[caseId].leads.filter((_, i) => isLeadFound(caseId, i)).length;
+}
+
+/* The first line of inquiry still open, or -1 when every line is closed. */
+function currentLead(caseId) {
+  return CASEBOOK[caseId].leads.findIndex((_, i) => !isLeadFound(caseId, i));
+}
+
+/* After each run: did the results show what any open line of inquiry asks for? */
+function checkLeads(caseId, run) {
+  if (!run.sets.length) return [];
+  const cp = state.progress.cases[caseId];
+  const found = [];
+  CASEBOOK[caseId].leads.forEach((lead, i) => {
+    if (!cp.leads[i] && leadFound(lead.detect, run.sets)) {
+      cp.leads[i] = Date.now();
+      found.push(i);
+    }
+  });
+  return found;
+}
+
+function renderLeadsSection() {
+  const id = state.activeCase;
+  const c = CASEBOOK[id];
+  const current = currentLead(id);
+  const items = c.leads.map((lead, i) => {
+    if (isLeadFound(id, i)) {
+      return el('li', { class: 'lead found' },
+        el('span', { class: 'lead-mark', 'aria-hidden': 'true' }, '✓'),
+        el('p', { class: 'lead-title' }, lead.title, el('span', { class: 'visually-hidden' }, ', closed')),
+        el('p', { class: 'lead-text' }, lead.found));
+    }
+    if (i === current) {
+      return el('li', { class: 'lead current' },
+        el('span', { class: 'lead-mark', 'aria-hidden': 'true' }, '▸'),
+        el('p', { class: 'lead-title' }, lead.title, el('span', { class: 'visually-hidden' }, ', open now')),
+        el('p', { class: 'lead-text' }, lead.objective));
+    }
+    return el('li', { class: 'lead later' },
+      el('span', { class: 'lead-mark', 'aria-hidden': 'true' }, '·'),
+      el('p', { class: 'lead-text' }, 'A further line of inquiry will open as the case develops.'));
+  });
+  return el('section', { class: 'leads', id: 'leads', 'aria-label': 'Lines of inquiry' },
+    el('h3', {}, 'Lines of inquiry', el('span', { class: 'leads-count' }, `${leadsFoundCount(id)} of ${c.leads.length} closed`)),
+    el('ol', { class: 'lead-list' }, items),
+    current < 0 ? el('p', { class: 'leads-done' }, 'Every line of inquiry is closed. Submit your deduction when you are ready.') : null);
+}
+
+/* The slim line above the editor that keeps the next step in view. */
+function renderInquiryStrip() {
+  const id = state.activeCase;
+  const c = CASEBOOK[id];
+  const i = currentLead(id);
+  const strip = $('#inquiry-strip');
+  strip.classList.toggle('done', i < 0);
+  setChildren(strip,
+    el('span', { class: 'is-label' }, i < 0 ? 'Every line closed:' : `Line ${i + 1} of ${c.leads.length}:`),
+    el('span', { class: 'is-text' }, i < 0 ? 'name the culprit, the key exhibit and the motive.' : c.leads[i].objective));
+}
+
+function showLeads() {
+  selectDossierTab('briefing');
+  showOnPhone('case');
+  const leads = $('#leads');
+  if (!leads) return;
+  leads.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'auto' : 'smooth' });
+  leads.classList.remove('flash');
+  void leads.offsetWidth;
+  leads.classList.add('flash');
+}
+
+/* A note above the results when a query closes a line of inquiry. */
+function renderDevelopment(caseId, index, { last = true } = {}) {
+  const c = CASEBOOK[caseId];
+  const lead = c.leads[index];
+  const next = currentLead(caseId);
+  let after = null;
+  if (last && next >= 0) {
+    after = el('p', { class: 'dev-next' }, el('strong', {}, `Next, line ${next + 1}: `), c.leads[next].objective);
+  } else if (last) {
+    after = el('div', {},
+      el('p', { class: 'dev-next' }, el('strong', {}, 'Every line of inquiry is closed. '),
+        'You have what you need: name the culprit, the key exhibit and the motive.'),
+      el('button', { type: 'button', class: 'btn-crimson', onclick: openAccusation }, 'Submit deduction'));
+  }
+  return el('section', { class: 'development', role: 'status' },
+    el('p', { class: 'dev-kicker' }, `A new development: line ${index + 1} of ${c.leads.length} closed`),
+    el('h3', { class: 'dev-title' }, lead.title),
+    el('p', { class: 'dev-text' }, lead.found),
+    after);
+}
+
+/* =============================================================================
+   Phones: one view at a time, a keyword strip for SQL, and the Android back button
+   ============================================================================= */
+const PHONE_QUERY = window.matchMedia('(max-width: 760px)');
+
+function isPhone() {
+  return PHONE_QUERY.matches;
+}
+
+function setView(view) {
+  const app = $('#app');
+  const changed = app.dataset.view !== view;
+  app.dataset.view = view;
+  $$('#mobile-nav button').forEach((b) => {
+    const on = b.dataset.view === view;
+    b.setAttribute('aria-pressed', String(on));
+    if (on) b.querySelector('.dot').hidden = true;
+  });
+  if (changed && isPhone()) window.scrollTo(0, 0);
+}
+
+function showOnPhone(view) {
+  if (isPhone()) setView(view);
+}
+
+/* A red dot on a view's button when something new waits there. */
+function flagView(view) {
+  if (isPhone() && $('#app').dataset.view !== view) $(`#mobile-nav [data-view="${view}"] .dot`).hidden = false;
+}
+
+const KEYBAR = [
+  { label: 'Run', action: 'run' },
+  'SELECT', '*', 'FROM', 'WHERE', 'AND', 'OR', '=', '<>', '>', '<',
+  { label: "'…'", text: "''", back: 1 },
+  { label: "LIKE '%…%'", text: "LIKE '%%'", back: 2 },
+  'IS NULL', 'JOIN', 'ON', 'AS', 'GROUP BY', 'HAVING', 'COUNT(*)', 'ORDER BY', 'DESC', 'LIMIT', 'DISTINCT',
+  '(', ')', ',', '.', ';',
+];
+
+/* Insert one SQL word at the caret, with the spacing a person would type. */
+function insertToken(token, back = 0) {
+  const ta = editorInput();
+  if (document.activeElement !== ta) {
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(state.caret.start, state.caret.end);
+  }
+  const tight = [')', ',', '.', ';'].includes(token);
+  if (tight && ta.selectionStart > 0 && ta.value[ta.selectionStart - 1] === ' ' && ta.selectionStart === ta.selectionEnd) {
+    ta.setSelectionRange(ta.selectionStart - 1, ta.selectionEnd);
+  }
+  const before = ta.value.slice(0, ta.selectionStart);
+  const lead = !before || tight || /[\s(.]$/.test(before) ? '' : ' ';
+  const trail = back || ['(', '.', ';'].includes(token) ? '' : ' ';
+  insertText(ta, lead + token + trail);
+  if (back) {
+    const pos = ta.selectionStart - back;
+    ta.setSelectionRange(pos, pos);
+  }
+  rememberCaret();
+}
+
+function rememberCaret() {
+  const ta = editorInput();
+  state.caret = { start: ta.selectionStart, end: ta.selectionEnd };
+}
+
+function buildKeybar() {
+  const bar = $('#keybar');
+  bar.replaceChildren(...KEYBAR.map((k) => {
+    const key = typeof k === 'string' ? { label: k, text: k } : k;
+    const btn = el('button', {
+      type: 'button',
+      class: 'kb' + (key.action === 'run' ? ' run' : /^[\w']/.test(key.text || '') ? '' : ' sym'),
+      'aria-label': key.action === 'run' ? 'Run the query' : `Insert ${key.text}`,
+    }, key.label);
+    // Keep the caret (and the keyboard) in the editor when a key is tapped.
+    btn.addEventListener('mousedown', (e) => e.preventDefault());
+    btn.addEventListener('click', () => {
+      if (key.action === 'run') {
+        editorInput().blur();
+        runEditor();
+      } else {
+        insertToken(key.text, key.back || 0);
+      }
+    });
+    return btn;
+  }));
+}
+
+/* On a phone, Back steps out of whatever is open (a dialog, the case list, the history,
+   a view) before it leaves the page. One guard entry in the history makes that possible. */
+function armBackButton() {
+  if (state.backArmed || !isPhone()) return;
+  state.backArmed = true;
+  history.pushState({ sleuth: 'guard' }, '');
+}
+
+function onBack() {
+  if (!state.backArmed) return;
+  const modal = $$('.modal').filter((m) => !m.hidden).pop();
+  if (modal) closeModal(modal.id);
+  else if (!$('#cp-menu').hidden) togglePicker(false);
+  else if ($('#history-drawer').classList.contains('open')) toggleHistory(false);
+  else if (isPhone() && $('#app').dataset.view !== 'case') setView('case');
+  else {
+    state.backArmed = false;
+    history.back();
+    return;
+  }
+  history.pushState({ sleuth: 'guard' }, '');
 }
 
 /* =============================================================================
@@ -5969,6 +7532,12 @@ function closeModal(id, { restoreFocus = true } = {}) {
   modal.hidden = true;
   modal.classList.remove('play');
   if (restoreFocus && modal.opener && document.contains(modal.opener)) modal.opener.focus();
+  // A journal page may lead straight on to the next (the prologue to the first scene).
+  if (id === 'story-modal' && state.storyAfter) {
+    const after = state.storyAfter;
+    state.storyAfter = null;
+    after();
+  }
 }
 
 function confirmAction({ title, text, ok, onConfirm }) {
@@ -6065,6 +7634,12 @@ function bindStaticEvents() {
   $('#pin-btn').addEventListener('click', pinToNotebook);
   $('#hint-btn').addEventListener('click', revealHint);
   $('#accuse-btn').addEventListener('click', openAccusation);
+  $$('#mobile-nav button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+  $('#inquiry-strip').addEventListener('click', showLeads);
+  buildKeybar();
+  window.addEventListener('popstate', onBack);
+  document.addEventListener('pointerdown', armBackButton, true);
+  window.addEventListener('pageshow', (e) => { if (e.persisted) state.backArmed = false; });
   $('#accuse-form').addEventListener('submit', submitAccusation);
   $('#acc-evidence').addEventListener('input', updateEvidencePreview);
   $('#loader-retry').addEventListener('click', startEngine);
@@ -6076,6 +7651,7 @@ function bindStaticEvents() {
       const notes = state.progress.notes;
       state.progress = defaultProgress();
       state.progress.notes = notes;
+      state.progress.prologueSeen = true;
       saveProgress();
       renderCasebookProgress();
       switchCase(1);
@@ -6129,6 +7705,7 @@ function renderAll() {
   renderFieldGuide();
   switchCase(state.activeCase);
   refreshEditor();
+  if (!state.progress.prologueSeen) showPrologue();
 }
 
 function init() {
@@ -6137,6 +7714,7 @@ function init() {
   if (!isUnlocked(state.progress.activeCase)) state.progress.activeCase = CASE_IDS.filter(isUnlocked).pop();
   state.storageOk = writeStorage(state.progress);
   state.activeCase = state.progress.activeCase;
+  setView('case');
   bindStaticEvents();
   initEditor();
   startEngine();
