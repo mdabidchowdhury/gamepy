@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a1120">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <title>The Quartermaster: a Rust ownership game</title>
+  <meta name="description" content="Learn Rust ownership and borrowing by getting crew plans past the Quartermaster, a borrow checker in disguise.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 3L57 17V47L32 61L7 47V17Z' fill='%23141d30' stroke='%23ffb648' stroke-width='4'/%3E%3Crect x='17' y='26' width='30' height='7' rx='3.5' fill='%23ffb648'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app" data-view="plan">
+    <header class="topbar">
+      <button class="brand" id="btn-title" title="About the game">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">The Quartermaster</span>
+      </button>
+      <div class="lvl-head" id="lvl-head"></div>
+      <nav class="top-actions">
+        <a class="btn ghost" id="btn-hub" href="../" title="Back to all games" aria-label="All games">←<span class="hub-txt"> All games</span></a>
+        <button class="btn ghost" id="btn-levels">Levels</button>
+        <button class="btn ghost icon" id="btn-help" aria-label="How to play">?</button>
+      </nav>
+    </header>
+
+    <main class="grid">
+      <section class="panel brief" id="brief" aria-label="Briefing"></section>
+
+      <section class="panel plan" aria-label="Flight plan">
+        <div class="panel-h">
+          <span class="ph-title">Flight plan</span><span class="ph-sub">each step is one line of Rust</span>
+          <div class="ph-tools">
+            <span class="energy" id="energy"></span>
+            <button class="btn ghost sm" id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
+            <button class="btn ghost sm" id="btn-reset" title="Restore the level’s starting plan">Reset</button>
+          </div>
+        </div>
+        <ol class="steps" id="steps"></ol>
+        <div class="palette" id="palette"></div>
+        <div class="run-row">
+          <button class="run-status" id="run-status" hidden></button>
+          <button class="btn primary" id="btn-run"><span class="run-label">Submit to the Quartermaster</span><kbd>Ctrl ↵</kbd></button>
+        </div>
+        <div class="qm" id="qm" aria-live="polite"></div>
+      </section>
+
+      <section class="side">
+        <div class="panel crew" id="crew" aria-label="Crew status"></div>
+        <div class="panel code" id="code" aria-label="Rust code"></div>
+      </section>
+    </main>
+
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Views">
+      <button data-view="brief"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7.5L19 8v12.5H7z"/><path d="M14.5 3.5V8H19M10 12.5h6M10 16h6"/></svg><span>Mission</span></button>
+      <button data-view="plan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6.5h10M10 12h10M10 17.5h10"/><path d="M3.8 6.5l1.4 1.4 2.4-2.6M3.8 12l1.4 1.4 2.4-2.6M4 17.5h3"/></svg><span>Plan</span></button>
+      <button data-view="crew"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 20c.4-3.4 2.9-5.6 6-5.6s5.6 2.2 6 5.6"/><circle cx="17.2" cy="9.4" r="2.5"/><path d="M16 14.6c2.7.1 4.6 2 5 5.1"/></svg><span>Crew</span></button>
+      <button data-view="code"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.6 4.5l-3.2 15"/></svg><span>Rust</span></button>
+    </nav>
+  </div>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="modal" id="modal" role="dialog" aria-modal="true" tabindex="-1"></div>
+  </div>
+  <div class="stamp" id="stamp" hidden><span>Approved</span></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/replays.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
