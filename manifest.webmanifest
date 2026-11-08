@@ -1,0 +1,16 @@
+{
+  "name": "Learn by Playing",
+  "short_name": "Learn by Playing",
+  "description": "Small browser games that teach programming languages by making you use them.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0d10",
+  "theme_color": "#0d0d10",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
