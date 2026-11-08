@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOC Analyst: Python Log Inspector</title>
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#0b0e14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Learn Python on a security operations shift: hunt through synthetic SOC telemetry for brute force, beacons, DNS tunnels, credential dumping and a full kill chain.">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>The SOC Logger: Python for blue teamers</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
 <script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
@@ -67,14 +70,74 @@
   .btn-g:hover{ background:#00ff6624; box-shadow:0 0 18px -4px #00ff6688; }
   .btn-c{ background:#00f3ff0e; border:1px solid #00f3ff33; color:var(--cyn); transition:all .18s ease; }
   .btn-c:hover{ background:#00f3ff1f; box-shadow:0 0 18px -4px #00f3ff77; }
+  .btn-r{ background:#ff336614; border:1px solid #ff336655; color:var(--red); transition:all .18s ease; }
+  .btn-r:hover{ background:#ff336626; box-shadow:0 0 18px -4px #ff336688; }
   .btn-dim{ background:#ffffff06; border:1px solid #ffffff14; color:#94a3b8; transition:all .18s ease; }
   .btn-dim:hover{ color:#e2e8f0; border-color:#ffffff30; }
 
   .bootbar{ background:linear-gradient(90deg,#00f3ff,#00ff66); box-shadow:0 0 14px #00ff6688; transition:width .3s ease; }
   .term-line{ white-space:pre-wrap; word-break:break-word; }
+
+  /* ---------- touch & phones ---------- */
+  .mnav, .keybar, .phone-only{ display:none; }
+  @media (pointer:coarse){
+    button, a, input, textarea{ touch-action:manipulation; }
+    .scanlines, .vignette{ display:none; }   /* full-screen blend layers are costly on phone GPUs */
+    .keybar{ display:flex; gap:6px; overflow-x:auto; padding:6px 8px; border-top:1px solid var(--line); background:#0c1018; scrollbar-width:none; }
+    .keybar::-webkit-scrollbar{ display:none; }
+    .keybar button{ flex:none; min-width:42px; height:38px; border-radius:6px; border:1px solid #1e293b; background:#ffffff06; color:#c9f7d9; font-size:15px; }
+    .keybar button:active{ background:#00ff6622; border-color:#00ff6655; }
+    .kbd-hint{ display:none !important; }
+  }
+  @media (max-width:1023px){
+    body{ padding-bottom:calc(68px + env(safe-area-inset-bottom)); }
+    header{ padding-top:env(safe-area-inset-top); height:auto !important; min-height:56px; gap:10px !important; }
+    .hdr-sub, .hdr-long{ display:none; }
+    #edBar{ gap:6px; }
+    #edBar .ed-label{ display:none; }
+    #solBtn span{ display:none; }                 /* icon only: the lock says enough */
+    #runBtn{ padding:8px 16px; margin-left:2px; }
+    footer{ display:none; }
+    .phone-only{ display:inline-flex; align-items:center; }
+    .mnav{ display:grid; grid-template-columns:repeat(3,1fr); gap:4px; position:fixed; left:0; right:0; bottom:0; z-index:75;
+      padding:6px 8px calc(6px + env(safe-area-inset-bottom)); background:#0d1220; border-top:1px solid var(--line); box-shadow:0 -10px 24px -12px #000; }
+    .mnav button{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-height:54px;
+      border-radius:10px; color:#64748b; font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; }
+    .mnav svg{ width:22px; height:22px; }
+    .mnav button[aria-current="page"]{ color:var(--grn); background:#00ff6614; }
+    .mnav button.dot::after{ content:''; position:absolute; top:7px; left:calc(50% + 9px); width:9px; height:9px; border-radius:50%; background:var(--cyn); box-shadow:0 0 0 2px #0d1220; }
+    body.typing .mnav{ display:none; }
+    body.typing{ padding-bottom:0; }
+
+    body[data-view="case"] #codeCol{ display:none; }
+    body[data-view="code"] #caseCol, body[data-view="output"] #caseCol{ display:none; }
+    body[data-view="code"] #termCard, body[data-view="code"] #histCard{ display:none; }
+    body[data-view="output"] #editorCard{ display:none; }
+    #editorCard{ min-height:60vh; }
+    body[data-view="output"] #termCard{ min-height:60vh; }
+
+    #caseCol{ display:flex; flex-direction:column; gap:.75rem; padding-right:0; }
+    #caseCol > *{ margin:0 !important; }
+    #caseSel{ order:1; } #dossier{ order:2; } #verifyBox{ order:3; } #hintBox{ order:4; } #tkSection{ order:5; } #notesSection{ order:6; }
+    #caseGrid{ gap:8px; }
+    #caseGrid button{ height:44px; font-size:14px; }
+    #dossier table{ display:block; overflow-x:auto; }
+
+    /* 8-10px labels are hard to read on a phone */
+    .text-\[8px\]{ font-size:10.5px !important; }
+    .text-\[9px\]{ font-size:11px !important; }
+    .text-\[9\.5px\]{ font-size:11.5px !important; }
+    .text-\[10px\]{ font-size:12px !important; }
+    .text-\[11px\]{ font-size:12.5px !important; }
+    .text-\[11\.5px\]{ font-size:13px !important; }
+    .text-\[12px\]{ font-size:13px !important; }
+    #editor, #gutter{ font-size:14px !important; }
+    #verifyBox input{ font-size:16px !important; min-height:44px; }
+    #runBtn{ min-height:38px; }
+  }
 </style>
 </head>
-<body class="text-slate-300 text-[13px] leading-relaxed overflow-x-hidden">
+<body class="text-slate-300 text-[13px] leading-relaxed overflow-x-hidden" data-view="case">
 
 <div class="gridbg"></div>
 <div class="scanlines"></div>
@@ -91,9 +154,9 @@
     </div>
     <div class="p-5">
       <pre class="text-[12px] leading-5 text-[#00f3ff] glow-c mb-4 select-none"> ____  ___   ____     __  ___
-/ ___|/ _ \ / ___|   / / / /  PYTHON LOG INSPECTOR
-\___ \ | | | |      / /_/ /   DEFENSIVE TELEMETRY AUDIT SIM
- ___) | |_| | |___  / __  /    v2.1 :: WASM BUILD 0.26.1
+/ ___|/ _ \ / ___|   / / / /  THE SOC LOGGER
+\___ \ | | | |      / /_/ /   PYTHON LOG INSPECTOR
+ ___) | |_| | |___  / __  /    v2.2 :: PYODIDE 0.26.1
 |____/ \___/ \____|/_/ /_/</pre>
       <div id="bootlog" class="h-40 overflow-hidden text-[11.5px] leading-[1.7]"></div>
       <div class="mt-4 h-1 bg-[#1e293b] rounded overflow-hidden"><div id="bootbar" class="bootbar h-full w-0 rounded"></div></div>
@@ -109,11 +172,12 @@
       <i data-lucide="shield" class="w-4 h-4 text-[#00ff66]"></i>
     </div>
     <div class="leading-tight min-w-0">
-      <div class="text-[12px] font-extrabold tracking-[.18em] text-slate-100 truncate">SOC ANALYST <span class="text-[#00ff66] glow-g">::</span> PYTHON LOG INSPECTOR</div>
-      <div class="text-[9px] tracking-[.3em] text-slate-500 uppercase">defensive telemetry audit simulator</div>
+      <div class="text-[12px] font-extrabold tracking-[.18em] text-slate-100 truncate">THE SOC LOGGER<span class="hdr-long"> <span class="text-[#00ff66] glow-g">::</span> PYTHON LOG INSPECTOR</span></div>
+      <div class="hdr-sub text-[9px] tracking-[.3em] text-slate-500 uppercase">defensive telemetry audit simulator</div>
     </div>
   </div>
   <div class="flex-1"></div>
+  <a href="../" class="btn-dim text-[10px] tracking-[.18em] px-3 py-1.5 rounded uppercase flex items-center gap-1.5 shrink-0" title="All games in the series" aria-label="All games"><i data-lucide="arrow-left" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">all games</span></a>
   <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded border border-[#1e293b] bg-[#ffffff04]">
     <span id="rtLed" class="led led-boot"></span>
     <span id="rtTxt" class="text-[10px] tracking-[.2em] text-[#ffb000] uppercase">booting runtime</span>
@@ -132,10 +196,10 @@
 <main class="relative z-10 grid grid-cols-1 lg:grid-cols-[470px_minmax(0,1fr)] gap-3 p-3 lg:h-[calc(100vh-56px-30px)]">
 
   <!-- ========== LEFT : INCIDENT DOSSIER ========== -->
-  <aside class="lg:overflow-y-auto lg:min-h-0 pr-1 space-y-3">
+  <aside id="caseCol" class="lg:overflow-y-auto lg:min-h-0 pr-1 space-y-3">
 
     <!-- case selector -->
-    <section class="card rounded-md p-4 fadeup">
+    <section id="caseSel" class="card rounded-md p-4 fadeup">
       <div class="sect-h mb-3">incident queue :: select case file</div>
       <div id="caseGrid" class="grid grid-cols-5 gap-1.5"></div>
     </section>
@@ -144,7 +208,7 @@
     <section id="dossier" class="space-y-3"></section>
 
     <!-- toolkit -->
-    <section class="card rounded-md p-4 fadeup">
+    <section id="tkSection" class="card rounded-md p-4 fadeup">
       <details id="tkDetails" open>
         <summary class="flex items-center justify-between">
           <span class="sect-h">python reference toolkit</span>
@@ -162,7 +226,7 @@
     <section id="hintBox" class="card rounded-md p-4 fadeup"></section>
 
     <!-- notes -->
-    <section class="card rounded-md p-4 fadeup">
+    <section id="notesSection" class="card rounded-md p-4 fadeup">
       <div class="flex items-center justify-between mb-2">
         <span class="sect-h">field notes scratchpad</span>
         <span id="noteSaved" class="text-[9px] tracking-[.2em] text-slate-600 uppercase flex items-center gap-1.5">
@@ -175,13 +239,13 @@
   </aside>
 
   <!-- ========== RIGHT : PYTHON CONSOLE ========== -->
-  <section class="flex flex-col gap-3 lg:min-h-0">
+  <section id="codeCol" class="flex flex-col gap-3 lg:min-h-0">
 
     <!-- editor -->
-    <div class="card rounded-md flex flex-col fadeup lg:h-[46%] min-h-[300px]">
-      <div class="flex items-center gap-2 px-3 py-2 border-b border-[#1e293b] bg-[#0e1420] rounded-t-md">
-        <i data-lucide="terminal" class="w-3.5 h-3.5 text-[#00f3ff]"></i>
-        <span class="text-[10px] tracking-[.25em] text-slate-400 uppercase">python console</span>
+    <div id="editorCard" class="card rounded-md flex flex-col fadeup lg:h-[46%] min-h-[300px]">
+      <div id="edBar" class="flex items-center gap-2 px-3 py-2 border-b border-[#1e293b] bg-[#0e1420] rounded-t-md">
+        <i data-lucide="terminal" class="ed-label w-3.5 h-3.5 text-[#00f3ff]"></i>
+        <span class="ed-label text-[10px] tracking-[.25em] text-slate-400 uppercase">python console</span>
         <span class="px-2 py-0.5 rounded text-[9px] border border-[#00f3ff]/30 text-[#00f3ff]/90 bg-[#00f3ff]/5 ml-1" id="fileChip">audit_case01.py</span>
         <div class="flex-1"></div>
         <button id="solBtn" class="btn-dim text-[9px] tracking-[.18em] px-2.5 py-1 rounded uppercase flex items-center gap-1.5" title="Reference solution unlocks after case resolution">
@@ -196,11 +260,12 @@
       </div>
       <div class="flex flex-1 min-h-0">
         <div id="gutter" class="w-10 shrink-0 overflow-hidden bg-[#0c1018] border-r border-[#1e293b] text-right pr-2 pt-3 text-[12.5px] leading-[1.55] text-slate-600 select-none">1</div>
-        <textarea id="editor" spellcheck="false" placeholder="# awaiting runtime..."
+        <textarea id="editor" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="enter" aria-label="Python code" placeholder="# awaiting runtime..."
           class="flex-1 bg-[#0b0e14]/60 text-[#c9f7d9] text-[12.5px] leading-[1.55] p-3 pt-3 resize-none placeholder:text-slate-700 whitespace-pre overflow-auto"></textarea>
       </div>
+      <div id="keybar" class="keybar" aria-label="Python keys"></div>
       <div class="flex items-center gap-3 px-3 py-1.5 border-t border-[#1e293b] text-[9px] tracking-[.18em] text-slate-500 uppercase">
-        <span class="flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3 text-[#ffb000]"></i>ctrl+enter execute</span>
+        <span class="kbd-hint flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3 text-[#ffb000]"></i>ctrl+enter execute</span>
         <span class="hidden sm:inline">tab = 4sp</span>
         <span class="hidden sm:inline">autosave: on</span>
         <div class="flex-1"></div>
@@ -209,11 +274,12 @@
     </div>
 
     <!-- terminal -->
-    <div class="card rounded-md flex flex-col flex-1 min-h-[220px] lg:min-h-0 fadeup">
+    <div id="termCard" class="card rounded-md flex flex-col flex-1 min-h-[220px] lg:min-h-0 fadeup">
       <div class="flex items-center gap-2 px-3 py-2 border-b border-[#1e293b] bg-[#0e1420] rounded-t-md">
         <span id="termDot" class="led led-boot"></span>
-        <span class="text-[10px] tracking-[.25em] text-slate-400 uppercase">execution terminal :: stdout / stderr / returns</span>
+        <span class="text-[10px] tracking-[.25em] text-slate-400 uppercase">execution terminal<span class="hdr-long"> :: stdout / stderr / returns</span></span>
         <div class="flex-1"></div>
+        <button id="toFindings" class="phone-only btn-g text-[9px] tracking-[.18em] px-2.5 py-1 rounded uppercase">submit findings →</button>
         <button id="exportBtn" class="btn-dim text-[9px] tracking-[.18em] px-2.5 py-1 rounded uppercase flex items-center gap-1.5" title="Download transcript">
           <i data-lucide="download" class="w-3 h-3"></i>export
         </button>
@@ -222,10 +288,10 @@
     </div>
 
     <!-- history -->
-    <div class="card rounded-md fadeup lg:h-[128px] h-[140px] flex flex-col">
+    <div id="histCard" class="card rounded-md fadeup lg:h-[128px] h-[140px] flex flex-col">
       <div class="flex items-center gap-2 px-3 py-2 border-b border-[#1e293b] bg-[#0e1420] rounded-t-md">
         <i data-lucide="history" class="w-3.5 h-3.5 text-[#00f3ff]"></i>
-        <span class="text-[10px] tracking-[.25em] text-slate-400 uppercase">audit trail :: run history</span>
+        <span class="text-[10px] tracking-[.25em] text-slate-400 uppercase">audit trail<span class="hdr-long"> :: run history</span></span>
         <div class="flex-1"></div>
         <button id="histClear" class="btn-dim text-[9px] tracking-[.18em] px-2 py-0.5 rounded uppercase">purge</button>
       </div>
@@ -233,6 +299,12 @@
     </div>
   </section>
 </main>
+
+<nav id="mnav" class="mnav" aria-label="Views">
+  <button type="button" data-view="case"><i data-lucide="folder-open"></i><span>Case</span></button>
+  <button type="button" data-view="code"><i data-lucide="code-xml"></i><span>Code</span></button>
+  <button type="button" data-view="output"><i data-lucide="square-terminal"></i><span>Output</span></button>
+</nav>
 
 <footer class="relative z-10 h-[30px] border-t border-[#1e293b] bg-[#0d1220]/90 flex items-center px-4 gap-4 text-[9px] tracking-[.22em] text-slate-600 uppercase">
   <span>dispatch // all telemetry is synthetic mock data for blue-team training</span>
@@ -387,7 +459,7 @@ const SETNAMES = []; // datasets that become python sets
   L.push({timestamp:tsx(23,10,2,44),event_id:10,image:'C:\\Windows\\System32\\services.exe',target_filename:'C:\\Windows\\System32\\winlogon.exe',granted_access:'0x0800',user:'NT AUTHORITY\\SYSTEM'});
   L.push({timestamp:tsx(23,11,47,3),event_id:10,image:'C:\\Windows\\System32\\csrss.exe',target_filename:'C:\\Windows\\System32\\csrss.exe',granted_access:'0x0040',user:'NT AUTHORITY\\SYSTEM'});
   L.push({timestamp:'2024-11-23 13:02:11',event_id:10,image:'C:\\Users\\Public\\svchost_update.exe',target_filename:'C:\\Windows\\System32\\lsass.exe',granted_access:'0x1010',user:'WKS22\\jdoe'});
-  L.push({timestamp:'2024-11-23 13:03:41',event_id:10,image:'C:\\ProgramData\\upd\\updx64.exe',target_filename:'C:\\Windows\\System32\\lsass.exe',granted_access:'0x1400',user:'WKS22\\jdoe'});
+  L.push({timestamp:'2024-11-23 13:03:41',event_id:10,image:'C:\\ProgramData\\upd\\updx64.exe',target_filename:'C:\\Windows\\System32\\lsass.exe',granted_access:'0x1410',user:'WKS22\\jdoe'});
   L.sort((a,b)=>a.timestamp<b.timestamp?-1:1);
   DATA.sysmon_logs=L;
 })();
@@ -395,8 +467,8 @@ const SETNAMES = []; // datasets that become python sets
 /* ---- CASE 9 : package_logs + audit_logs ---------------------- */
 (function(){ const r = mulberry32(909);
   const pkgs=[['requests','2.31.0'],['numpy','1.26.4'],['flask','3.0.3'],['pytest','8.2.1'],['pyyaml','6.0.1'],['cryptography','43.0.1'],['boto3','1.34.145'],['rich','13.7.1'],['uvicorn','0.30.3'],['pandas','2.2.2'],['jinja2','3.1.4'],['certifi','2024.7.4'],['idna','3.7']];
-  const P=pkgs.map((p,i)=>({build_id:`BLD-${7700+i}`,agent:`build-runner-0${ir(r,1,4)}`,pkg_name:p[0],pkg_version:p[1],registry:'https://npm.company.internal',source_ip:'10.30.2.15',install_time:tsx(18,ir(r,9,16),ir(r,0,59),ir(r,0,59))}));
-  P.push({build_id:'BLD-7841',agent:'build-runner-03',pkg_name:'jwt-decode-plus',pkg_version:'9.9.9',registry:'http://npm-mirror.net',source_ip:'45.148.10.9',install_time:'2024-11-18 03:12:44'});
+  const P=pkgs.map((p,i)=>({build_id:`BLD-${7700+i}`,agent:`build-runner-0${ir(r,1,4)}`,pkg_name:p[0],pkg_version:p[1],registry:'https://pypi.company.internal/simple',source_ip:'10.30.2.15',install_time:tsx(18,ir(r,9,16),ir(r,0,59),ir(r,0,59))}));
+  P.push({build_id:'BLD-7841',agent:'build-runner-03',pkg_name:'jwt-decode-plus',pkg_version:'9.9.9',registry:'http://pypi-mirror.net/simple',source_ip:'45.148.10.9',install_time:'2024-11-18 03:12:44'});
   P.sort((a,b)=>a.install_time<b.install_time?-1:1);
   DATA.package_logs=P;
   const evs=[['ListBuckets','infra-admin'],['GetObject','data-sci-01'],['DescribeInstances','netops'],['PutObject','etl-runner'],['AssumeRole','ci-deploy-svc'],['UpdatePolicy','sec-arch'],['GetCallerIdentity','auditor'],['ListUsers','iam-readonly'],['CreateLogGroup','obs-agent'],['StartInstances','netops'],['DownloadDBLog','dba-01'],['GetSecretValue','vault-sync']];
@@ -459,19 +531,19 @@ const CASES=[
   debrief:`DETECTION ENGINEERING: threshold-tally on (src_ip) over a sliding window is the canonical brute-force rule (Sigma: selection_status=FAILED | count(src_ip) > 30). Your gap: no MFA lockout artifact preceded it — escalate to enforce rate-limiting on edge auth.`,
   starter:`# CASE 01 :: HIGH-FREQUENCY AUTH AUDIT
 # dataset: auth_logs -> list[dict]  (timestamp, src_ip, username, status, port)
+# Fill in every ___ and press RUN.
 from collections import Counter
 
 print('[*] rows:', len(auth_logs))
 print('[*] sample:', auth_logs[0])
 
-# 1) isolate failures
-fails = [r for r in auth_logs if r['status'] == 'FAILED']
+# 1) keep only the failed attempts
+fails = [r for r in auth_logs if r['status'] == ___]
 print('[*] failed rows:', len(fails))
 
-# 2) tally per source ip and find count > 30
-tally = Counter(r['src_ip'] for r in fails)
-top = [(ip, n) for ip, n in tally.most_common() if n > 30]
-top`,
+# 2) count failures per source IP and keep the ones above the threshold
+tally = Counter(r[___] for r in fails)
+[(ip, n) for ip, n in tally.most_common() if n > ___]`,
   solution:
 `from collections import Counter
 fails = [r for r in auth_logs if r['status'] == 'FAILED']
@@ -485,7 +557,7 @@ tally = Counter(r['src_ip'] for r in fails)
   submit:'SUBMIT: hostile client IP / total bytes sent (integer)',
   datasets:[{name:'web_access_logs',kind:'table',schema:[['timestamp','str','UTC event time'],['client_ip','str','requesting host'],['method','str','HTTP verb'],['uri','str','raw request path + query'],['status_code','int','HTTP response code'],['bytes_sent','int','response body size, bytes']]}],
   fields:[{k:'ip',label:'HOSTILE CLIENT_IP',ph:'e.g. 198.51.100.x',mode:'plain',ans:'198.51.100.23'},
-          {k:'bytes',label:'TOTAL BYTES_SENT',ph:'integer, no separators',mode:'digits',ans:'116990'}],
+          {k:'bytes',label:'TOTAL BYTES_SENT',ph:'integer, e.g. 12345',mode:'num',ans:'116990'}],
   hints:[
     `Smuggled payloads leave '%' fingerprints all over the 'uri' field. Start with a comprehension testing membership of '%' in each uri.`,
     `Watch for double-encoding (%25), hex-escaped ASCII (\\u0027 = quote), traversal (..%2f) and inline SQL keywords. They all funnel through percent signs.`,
@@ -495,15 +567,16 @@ tally = Counter(r['src_ip'] for r in fails)
 # dataset: web_access_logs -> list[dict]
 # fields: timestamp, client_ip, method, uri, status_code, bytes_sent
 
-flagged = [r for r in web_access_logs if '%' in r['uri']]
+# 1) flag requests whose uri carries percent-encoding
+flagged = [r for r in web_access_logs if ___]
 print('[*] flagged rows:', len(flagged))
-
 for r in flagged:
     print(r['timestamp'], r['client_ip'], r['uri'][:60], r['bytes_sent'])
 
-# total exfil bytes per hostile client
-total = sum(r['bytes_sent'] for r in flagged)
-total`,
+# 2) who sent them, and how many bytes went out in total?
+clients = {r[___] for r in flagged}
+total = sum(___ for r in flagged)
+clients, total`,
   solution:
 `flagged = [r for r in web_access_logs if '%' in r['uri']]
 ips = {r['client_ip'] for r in flagged}
@@ -530,11 +603,13 @@ ips, total
 print('[*] executions:', len(endpoint_logs))
 print('[*] IOC count :', len(malicious_hashes))
 
-hits = [r for r in endpoint_logs if r['sha256_hash'] in malicious_hashes]
+# 1) keep executions whose hash appears in the IOC set
+hits = [r for r in endpoint_logs if ___]
 for r in hits:
     print(r['hostname'], r['user'], r['filepath'])
 
-sorted({r['hostname'] for r in hits})`,
+# 2) deduplicated, sorted hostnames
+sorted(___)`,
   solution:
 `hits = [r for r in endpoint_logs if r['sha256_hash'] in malicious_hashes]
 sorted({r['hostname'] for r in hits})
@@ -558,17 +633,20 @@ from datetime import datetime
 from collections import defaultdict
 
 FMT = '%Y-%m-%d %H:%M:%S'
-flows = sorted(firewall_flows, key=lambda r: r['timestamp'])
 
+# 1) group connection times by (src_ip, dst_ip)
 pairs = defaultdict(list)
-for r in flows:
+for r in sorted(firewall_flows, key=lambda r: r['timestamp']):
     pairs[(r['src_ip'], r['dst_ip'])].append(datetime.strptime(r['timestamp'], FMT))
 
-for k, ts in pairs.items():
-    if len(ts) >= 5:
-        deltas = [(b - a).total_seconds() for a, b in zip(ts, ts[1:])]
-        if all(58 <= d <= 62 for d in deltas):
-            print('[!] beacon pattern:', k, 'count:', len(ts), 'deltas:', deltas[:6])`,
+# 2) for pairs with 5+ connections, measure the gaps between consecutive ones
+for pair, times in pairs.items():
+    if len(times) < 5:
+        continue
+    deltas = ___    # list of seconds between each connection and the next
+    # 3) a beacon keeps every gap inside 58..62 seconds
+    if ___:
+        print('[!] beacon pattern:', pair, 'count:', len(times), 'deltas:', deltas[:6])`,
   solution:
 `from datetime import datetime
 from collections import defaultdict
@@ -593,27 +671,23 @@ hits
   debrief:`DETECTION ENGINEERING: this is the classic bloodhound-for-blue-team rule — distinct-target fan-out per principal per window. Service accounts make lateral movement noisy: 7 unique hosts in 18 minutes with leading 4625 failures is password-spray-then-pivot behavior.`,
   starter:`# CASE 05 :: DISTRIBUTED ACCOUNT ACCESS ANOMALIES
 # dataset: ad_logs -> list[dict]
+# goal: an account touching MORE than 5 distinct workstations within any 30 minutes
 from collections import defaultdict
 from datetime import datetime, timedelta
 
 FMT = '%Y-%m-%d %H:%M:%S'
+WINDOW = timedelta(minutes=30)
+
 by_user = defaultdict(list)
 for r in ad_logs:
     by_user[r['user_id']].append(r)
 
-for u, rows in by_user.items():
+for user, rows in by_user.items():
     rows.sort(key=lambda r: r['timestamp'])
-    for i in range(len(rows)):
-        t0 = datetime.strptime(rows[i]['timestamp'], FMT)
-        ws = set()
-        for r in rows[i:]:
-            if datetime.strptime(r['timestamp'], FMT) - t0 <= timedelta(minutes=30):
-                ws.add(r['workstation_id'])
-            else:
-                break
-        if len(ws) > 5:
-            print('[!] anomaly:', u, '->', len(ws), 'distinct workstations in 30m')
-            break`,
+    # TODO: start a window at each row, collect the workstation_ids seen
+    #       within WINDOW of that start, and report the user if that set
+    #       ever holds more than 5 machines.
+    ___`,
   solution:
 `from collections import defaultdict
 from datetime import datetime, timedelta
@@ -644,19 +718,18 @@ for u, rows in by_user.items():
 # dataset: dns_logs -> list[dict]
 import re, base64
 
-pat = re.compile(r'^([A-Za-z0-9+/]{14,})\\.sync-metrics\\.net$')
-rows = sorted(dns_logs, key=lambda r: r['timestamp'])
+# TODO 1: a pattern capturing a long base64-looking label in front of .sync-metrics.net
+pat = re.compile(r'___')
 
 chunks = []
-for r in rows:
+for r in sorted(dns_logs, key=lambda r: r['timestamp']):
     m = pat.match(r['query_domain'])
     if m:
         chunks.append(m.group(1))
         print('[+] chunk', len(chunks), 'from', r['client_ip'], '->', m.group(1))
 
-raw = ''.join(chunks)
-print('[*] b64 len:', len(raw))
-base64.b64decode(raw).decode()`,
+# TODO 2: join the chunks in order and base64-decode them to text
+___`,
   solution:
 `import re, base64
 pat = re.compile(r'^([A-Za-z0-9+/]{14,})\\.sync-metrics\\.net$')
@@ -679,18 +752,21 @@ base64.b64decode(''.join(chunks)).decode()
   starter:`# CASE 07 :: PROCESS HIERARCHY RECONSTRUCTION
 # dataset: process_logs -> list[dict]
 
+# parent pid -> list of child rows
 kids = {}
 for p in process_logs:
     kids.setdefault(p['parent_process_id'], []).append(p)
+names = {p['process_id']: p['process_name'] for p in process_logs}
 
+# TODO 1: the pid of the WINWORD.EXE whose parent is OUTLOOK.EXE (the invoice)
+root = ___
+
+# TODO 2: walk down from root, appending every pid in order
 chain = []
 def trace(pid):
-    chain.append(pid)
-    for c in kids.get(pid, []):
-        print('   ' * len(chain), c['process_id'], c['process_name'])
-        trace(c['process_id'])
+    ___
 
-trace(4100)  # the invoice-born WINWORD
+trace(root)
 chain`,
   solution:
 `kids = {}
@@ -707,33 +783,30 @@ chain
 
 { id:8, tier:'ADVANCED', skill:'SYSMON EID-10 FILTERING', title:'Sensitive Memory Handle Access Audit',
   brief:`Sysmon ProcessAccess (EID 10) events streamed in overnight. Something opened credential-memory handles to a core system process with read rights. Legitimate services do this constantly — separate the wolves from the watchdogs.`,
-  objective:`Filter Event ID 10 handle operations targeting core system processes where granted_access carries memory-read flags (0x1010 / 0x1400). Identify the operator and the rogue images.`,
+  objective:`Filter Event ID 10 handle operations targeting core system processes where granted_access carries the PROCESS_VM_READ right (0x1010 / 0x1410). Identify the operator and the rogue images.`,
   submit:'SUBMIT: operator user / rogue image paths (comma-separated)',
   datasets:[{name:'sysmon_logs',kind:'table',schema:[['event_id','int','Sysmon event code'],['image','str','requesting process'],['target_filename','str','access target'],['granted_access','str','hex access mask'],['user','str','security context'],['timestamp','str','UTC']]}],
   fields:[{k:'user',label:'OPERATOR USER',ph:'HOST\\\\account',mode:'lc',ans:'wks22\\jdoe'},
           {k:'images',label:'ROGUE IMAGES',ph:'comma-separated paths',mode:'list',ans:'C:\\Users\\Public\\svchost_update.exe,C:\\ProgramData\\upd\\updx64.exe'}],
   hints:[
-    `First gate: event_id == 10. Second gate: granted_access in ('0x1010', '0x1400').`,
+    `First gate: event_id == 10. Second gate: granted_access in ('0x1010', '0x1410'), the masks that include PROCESS_VM_READ (0x0010).`,
     `Third gate: target_filename under C:\\Windows\\System32 — the crown jewels live there (lsass.exe is the vault).`,
     `System32 svchost and Defender's MsMpEng touch lsass with 0x1000 — query-limited, not read. They legitimately survive gate 1+3 but die at gate 2. Two loaders remain, one operator.` ],
-  debrief:`DETECTION ENGINEERING: EID-10 with GrantedAccess 0x1010/0x1400 against lsass.exe is the canonical credential-dumping signal (mimikatz-class). Path is your verdict: signed System32 requesters trip volume, Public/ProgramData loaders trip handcuffs. Escalate WKS22 for memory-acquisition forensics.`,
+  debrief:`DETECTION ENGINEERING: EID-10 with GrantedAccess 0x1010/0x1410 (both carry PROCESS_VM_READ) against lsass.exe is the canonical credential-dumping signal (mimikatz-class). Path is your verdict: signed System32 requesters trip volume, Public/ProgramData loaders trip handcuffs. Escalate WKS22 for memory-acquisition forensics.`,
   starter:`# CASE 08 :: SENSITIVE MEMORY HANDLE ACCESS
 # dataset: sysmon_logs -> list[dict]
-# flags of interest: '0x1010' (QUERY_LIMITED|READ) / '0x1400' (QUERY_INFO|READ)
+# PROCESS_VM_READ (0x0010) is the right that lets one process read another's memory.
+# Credential dumpers typically request '0x1010' or '0x1410'; both include 0x0010.
+# Gates: event_id 10 -> read-capable granted_access -> target inside System32
 
-hits = [r for r in sysmon_logs
-        if r['event_id'] == 10
-        and r['granted_access'] in ('0x1010', '0x1400')
-        and 'System32' in r['target_filename']]
+for r in sysmon_logs[:5]:
+    print(r)
 
-for r in hits:
-    print(r['timestamp'], r['user'])
-    print('   ', r['image'], '->', r['target_filename'], r['granted_access'])
-
-hits`,
+# TODO: push the events through all three gates, then list the user(s) and image(s)
+___`,
   solution:
 `hits = [r for r in sysmon_logs if r['event_id'] == 10
-        and r['granted_access'] in ('0x1010', '0x1400')
+        and r['granted_access'] in ('0x1010', '0x1410')
         and 'C:\\\\Windows\\\\System32' in r['target_filename']]
 images = sorted({r['image'] for r in hits})
 users = sorted({r['user'] for r in hits})
@@ -756,20 +829,18 @@ users, images
   debrief:`DETECTION ENGINEERING: cross-plane correlation (build egress IP == control-plane caller IP, Δt <= 300s) is how dependency-confusion pivots get caught. The attacker's mistake: reusing the NAT IP. Enforce registry allowlists and alert on key minting outside CI change windows.`,
   starter:`# CASE 09 :: CI/CD DEPENDENCY & IAM AUDIT
 # datasets: package_logs, audit_logs -> list[dict]
+# approved registry: anything hosted on company.internal
 from datetime import datetime
 FMT = '%Y-%m-%d %H:%M:%S'
 
-bad = [p for p in package_logs if 'company.internal' not in p['registry']]
-print('[*] unauthorized installs:', len(bad))
+print('[*] packages:', len(package_logs), '| audit events:', len(audit_logs))
+print('[*] package fields:', list(package_logs[0].keys()))
+print('[*] audit fields  :', list(audit_logs[0].keys()))
 
-for p in bad:
-    t0 = datetime.strptime(p['install_time'], FMT)
-    print('[!] rogue pkg:', p['pkg_name'], p['source_ip'], p['install_time'])
-    for a in audit_logs:
-        if a['event_name'] == 'CreateAccessKey' and a['source_ip'] == p['source_ip']:
-            dt = (datetime.strptime(a['event_time'], FMT) - t0).total_seconds()
-            if 0 <= dt <= 300:
-                print('    [HIT]', a['user_identity'], 'delta_s =', dt)`,
+# TODO 1: find installs that came from an unapproved registry
+# TODO 2: for each one, find CreateAccessKey events from the same source_ip
+#         0..300 seconds after the install
+___`,
   solution:
 `from datetime import datetime
 FMT = '%Y-%m-%d %H:%M:%S'
@@ -795,20 +866,17 @@ for p in bad:
   debrief:`DETECTION ENGINEERING: single-event alerts fatigue; chained corroboration convicts. Your 09:03:12 -> 09:24:15 timeline (21 minutes, dwell-to-egress) is now an executive-grade incident story and a pre-built retro-hunt query. Every stage marker doubles as a standalone detection rule.`,
   starter:`# CASE 10 :: ATTACK CHAIN TIMELINE SYNTHESIS
 # dataset: apt_campaign_logs -> list[dict]
+# stages: initial access -> persistence -> privilege -> internal scan -> staging -> egress
 
-MARKERS = ['spawned WINWORD.EXE', 'UpdaterSvc', 'SeDebugPrivilege',
-           '445/tcp', '7z.exe', ':8443']
+from collections import Counter
 
 rows = sorted(apt_campaign_logs, key=lambda r: r['timestamp'])
-chain = []
-for stage in MARKERS:
-    for r in rows:
-        if stage in r['detail'] and r['host'] == 'WS-14':
-            chain.append(r)
-            print(r['event_uid'], r['timestamp'], r['category'].upper().ljust(9), '::', r['detail'][:70])
-            break
+print('[*] events:', len(rows), '|', rows[0]['timestamp'], '->', rows[-1]['timestamp'])
+print('[*] by category:', Counter(r['category'] for r in rows))
+print('[*] by host    :', Counter(r['host'] for r in rows))
 
-[r['event_uid'] for r in chain]`,
+# TODO: pick one event per stage, in chronological order, and return their event_uids
+___`,
   solution:
 `MARKERS = ['spawned WINWORD.EXE', 'UpdaterSvc', 'SeDebugPrivilege',
            '445/tcp', '7z.exe', ':8443']
@@ -827,6 +895,7 @@ chain
 const LS='socli_v1';
 let state={solved:[],hints:{},notes:{},code:{},history:[],active:1,attempts:{}};
 try{ const s=JSON.parse(localStorage.getItem(LS)); if(s&&typeof s==='object') state=Object.assign(state,s); }catch(e){}
+if(state.v!==2){ state.code={}; state.v=2; }   // v2 starters are scaffolds: drop buffers holding the old ones
 let saveT=null;
 function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{localStorage.setItem(LS,JSON.stringify(state));}catch(e){} },250); }
 const cur=()=>CASES.find(c=>c.id===state.active);
@@ -934,7 +1003,7 @@ function renderVerify(){
     <div class="space-y-2.5">
       ${c.fields.map((f,i)=>`<div>
         <label class="text-[9px] tracking-[.2em] text-slate-500 uppercase">${f.label}</label>
-        <input id="vf${i}" ${solved?'disabled':''} autocomplete="off" spellcheck="false" placeholder="${esc(f.ph)}"
+        <input id="vf${i}" ${solved?'disabled':''} autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="${esc(f.ph)}"
           class="w-full mt-1 bg-[#0b0e14]/80 border border-[#1e293b] rounded px-3 py-2 text-[12px] text-[#c9f7d9] placeholder:text-slate-700 focus:border-[#00ff66]/50"/>
       </div>`).join('')}
     </div>
@@ -966,7 +1035,7 @@ function renderHints(){
         :`<button onclick="revealHint(${i})" class="w-full border border-[#1e293b] bg-[#ffffff03] hover:border-[#ffb000]/40 hover:bg-[#ffb000]/5 transition-all rounded p-2.5 text-left flex items-center gap-2.5">
             <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-500"></i>
             <span class="text-[10px] tracking-[.2em] text-slate-500 uppercase">decrypt hint tier ${['I','II','III'][i]}</span>
-            <span class="flex-1"></span><span class="text-[9px] text-slate-600">${i===0?'free':i===1?'level '+revealed+'+':'final'}</span>
+            <span class="flex-1"></span><span class="text-[9px] text-slate-600">${i===0?'free':i===1?'after tier I':'final'}</span>
           </button>`;
       }).join('')}
     </div>`;
@@ -989,7 +1058,7 @@ function renderSolBtn(){
   const b=document.getElementById('solBtn');
   document.getElementById('solBtnTxt').textContent=solved?'load solution':'solution locked';
   b.className=(solved?'btn-c':'btn-dim opacity-60')+' text-[9px] tracking-[.18em] px-2.5 py-1 rounded uppercase flex items-center gap-1.5';
-  b.innerHTML=`<i data-lucide="${solved?'lock-open':'lock'}" class="w-3 h-3"></i><span>${solved?'load solution':'solution locked'}</span>`;
+  b.innerHTML=`<i data-lucide="${solved?'lock-open':'lock'}" class="w-3 h-3"></i><span id="solBtnTxt">${solved?'load solution':'solution locked'}</span>`;   // keep the id: later renders look it up
   b.onclick=()=>{ if(!state.solved.includes(cur().id)){ sysL('reference solution is sealed until case resolution. earn it, analyst.'); return; }
     const ed=document.getElementById('editor');
     ed.value += `\n\n# ── REFERENCE SOLUTION :: CASE ${String(c.id).padStart(2,'0')} ──\n${c.solution}`;
@@ -1026,6 +1095,7 @@ function insertSnippet(i){
   ed.focus(); ed.selectionStart=ed.selectionEnd=(before+nl+snip+'\n').length;
   syncGutter(); persistCode();
   sysL(`toolkit module injected: ${window._snips[i][0]}`);
+  if(isPhone()) setView('code');
 }
 
 /* ================================================================
@@ -1057,75 +1127,179 @@ function persistCode(){ clearTimeout(codeT); codeT=setTimeout(()=>{ state.code[c
 document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){ e.preventDefault(); runCode(); } });
 
 /* ================================================================
-   6. PYODIDE RUNTIME
+   6. PYTHON RUNTIME :: Pyodide in a Web Worker
+   Code runs off the page thread, so a runaway loop can be stopped,
+   and every run starts from fresh copies of the datasets.
 ================================================================ */
-let pyodide=null, runtimeReady=false, running=false;
+const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/';
+const RUN_TIMEOUT_MS = 15000;
+const PY_RUNNER = `import json as _json, copy as _copy, ast as _ast, traceback as _tb
+from pprint import pprint
+_sets = set(_json.loads(__sets_json))
+_PRISTINE = {k: (set(v) if k in _sets else v) for k, v in _json.loads(__boot_json).items()}
+
+def _fmt(e):
+    parts = _tb.format_exception(type(e), e, e.__traceback__)
+    keep = [p for p in parts if not p.startswith('  File') or '"<case>"' in p]
+    return ''.join(keep).strip()
+
+def _run(code):
+    ns = {'__name__': '__main__', 'pprint': pprint}
+    for k, v in _PRISTINE.items():
+        ns[k] = _copy.deepcopy(v)
+    try:
+        tree = _ast.parse(code, '<case>', 'exec')
+        last = None
+        if tree.body and isinstance(tree.body[-1], _ast.Expr):
+            last = _ast.Expression(tree.body.pop().value)
+        exec(compile(tree, '<case>', 'exec'), ns)
+        if last is not None:
+            val = eval(compile(last, '<case>', 'eval'), ns)
+            if val is not None:
+                return ('ok', repr(val))
+        return ('ok', None)
+    except NameError as e:
+        if getattr(e, 'name', None) == '___':
+            line, tb = None, e.__traceback__
+            while tb is not None:
+                if tb.tb_frame.f_code.co_filename == '<case>':
+                    line = tb.tb_lineno
+                tb = tb.tb_next
+            return ('blank', str(line or '?'))
+        return ('error', _fmt(e))
+    except BaseException as e:
+        return ('error', _fmt(e))
+`;
+
+/* runs inside the worker (serialised with toString, so no outside references) */
+function socWorker(){
+  let py = null;
+  self.onmessage = async (e) => {
+    const m = e.data;
+    if (m.type === 'init') {
+      try {
+        importScripts(m.indexURL + 'pyodide.js');
+        py = await loadPyodide({ indexURL: m.indexURL });
+        py.setStdout({ batched: (s) => self.postMessage({ type: 'out', text: s }) });
+        py.setStderr({ batched: (s) => self.postMessage({ type: 'err', text: s }) });
+        py.globals.set('__boot_json', m.data);
+        py.globals.set('__sets_json', m.sets);
+        py.runPython(m.runner);
+        self.postMessage({ type: 'ready', version: py.runPython('import sys; sys.version.split()[0]') });
+      } catch (err) {
+        self.postMessage({ type: 'fail', message: String((err && err.message) || err) });
+      }
+    } else if (m.type === 'run') {
+      const t0 = performance.now();
+      let status = 'error', payload = '';
+      try {
+        const fn = py.globals.get('_run');
+        const res = fn(m.code);
+        const arr = res.toJs();
+        res.destroy(); fn.destroy();
+        status = arr[0]; payload = arr[1] == null ? null : String(arr[1]);
+      } catch (err) {
+        payload = String((err && err.message) || err);
+      }
+      self.postMessage({ type: 'done', id: m.id, status, payload, ms: Math.round(performance.now() - t0) });
+    }
+  };
+}
+
+let worker = null, runtimeReady = false, runJob = null, runSeq = 0;
+function spawnWorker(){
+  return new Promise((resolve, reject) => {
+    let w;
+    try {
+      const url = URL.createObjectURL(new Blob(['(' + socWorker.toString() + ')()'], { type: 'text/javascript' }));
+      w = new Worker(url);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (err) { reject(err); return; }
+    worker = w;
+    w.onmessage = (e) => {
+      if (w !== worker) return;
+      const m = e.data;
+      if (m.type === 'ready') { runtimeReady = true; resolve(m.version); }
+      else if (m.type === 'fail') reject(new Error(m.message));
+      else if (m.type === 'out') String(m.text).split('\n').forEach(l => { if (l.trim()) outL(l); });
+      else if (m.type === 'err') String(m.text).split('\n').forEach(l => { if (l.trim()) errL(l); });
+      else if (m.type === 'done') finishRun(m);
+    };
+    w.onerror = (ev) => { if (!runtimeReady) reject(new Error((ev && ev.message) || 'worker failed to start')); };
+    w.postMessage({ type: 'init', indexURL: PYODIDE_URL, runner: PY_RUNNER, data: JSON.stringify(DATA), sets: JSON.stringify(SETNAMES) });
+  });
+}
 function setRuntime(mode,msg){
   const led=document.getElementById('rtLed'), txt=document.getElementById('rtTxt'), dot=document.getElementById('termDot');
   const cls=mode==='on'?'led led-on':mode==='off'?'led led-off':'led led-boot';
   led.className=cls; dot.className=cls;
   txt.textContent=msg; txt.className=`text-[10px] tracking-[.2em] uppercase ${mode==='on'?'text-[#00ff66]':mode==='off'?'text-[#ff3366]':'text-[#ffb000]'}`;
 }
+function setRunEnabled(on){
+  const b=document.getElementById('runBtn');
+  b.classList.toggle('opacity-40', !on); b.classList.toggle('pointer-events-none', !on);
+}
+function setRunBtn(isRunning){
+  const b=document.getElementById('runBtn');
+  b.className=(isRunning?'btn-r':'btn-g')+' text-[10px] tracking-[.18em] px-4 py-1.5 rounded uppercase flex items-center gap-2 font-bold';
+  b.innerHTML=isRunning?'<i data-lucide="square" class="w-3.5 h-3.5"></i>STOP':'<i data-lucide="play" class="w-3.5 h-3.5"></i>RUN';
+  b.title=isRunning?'Stop this run':'Execute (Ctrl+Enter)';
+  lucide.createIcons();
+}
 async function bootPython(logFn){
-  logFn('[....] resolving pyodide wasm runtime v0.26.1');
-  pyodide=await loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/'});
-  logFn('[ OK ] python 3.12 interpreter online (wasm32)');
-  pyodide.globals.set('__boot_json', JSON.stringify(DATA));
-  pyodide.globals.set('__sets_json', JSON.stringify(SETNAMES));
-  pyodide.runPython(`
-import json as _json
-_sets = set(_json.loads(__sets_json))
-for _k, _v in _json.loads(__boot_json).items():
-    globals()[_k] = set(_v) if _k in _sets else _v
-from pprint import pprint
-del _json, _sets, _k, _v
-`);
-  runtimeReady=true;
+  logFn('[....] starting pyodide v0.26.1 in a background worker');
+  const ver=await spawnWorker();
+  logFn(`[ OK ] python ${ver} interpreter online (wasm32, off the page thread)`);
   setRuntime('on','runtime online');
-  document.getElementById('runBtn').classList.remove('opacity-40','pointer-events-none');
-  logFn(`[ OK ] ${Object.keys(DATA).length} telemetry datasets mounted into python globals`);
+  setRunEnabled(true);
+  logFn(`[ OK ] ${Object.keys(DATA).length} telemetry datasets loaded · fresh copy on every run`);
   logFn('[ OK ] stdout/stderr capture pipes attached');
 }
 
-async function runCode(){
-  if(running) return;
+const firstLineOf=code=>(code.split('\n').find(l=>l.trim()&&!l.trim().startsWith('#'))||'# --').trim();
+function runCode(){
+  if(runJob) return;                     // the button stops a run; Ctrl+Enter only starts one
   if(!runtimeReady){ sysL('runtime offline — check network/CDN reachability and reload.'); return; }
   const code=ed.value; if(!code.trim()){ sysL('console buffer empty.'); return; }
-  running=true; const t0=performance.now();
-  const firstLine=(code.split('\n').find(l=>l.trim()&&!l.trim().startsWith('#'))||'# --').trim();
+  const firstLine=firstLineOf(code);
   execL(`case_${String(cur().id).padStart(2,'0')} :: ${firstLine.slice(0,72)}${firstLine.length>72?'…':''}`);
-  let outBuf=[];
-  pyodide.setStdout({batched:s=>{ s.split('\n').forEach(l=>{ if(l.trim()) outL(l); }); }});
-  pyodide.setStderr({batched:s=>{ s.split('\n').forEach(l=>{ if(l.trim()) errL(l); }); }});
-  let status='ok', errMsg='';
-  try{
-    const res=await pyodide.runPythonAsync(code);
-    if(res!==undefined){
-      try{
-        pyodide.globals.set('__res_echo',res);
-        const rep=pyodide.runPython('repr(__res_echo)');
-        pyodide.runPython('del __res_echo');
-        resL('← '+rep);
-      }catch(e){}
-    }
-  }catch(err){
-    status='error';
-    errMsg=String(err.message||err).split('\n').filter(l=>!l.includes('File "<exec>", line 1, in <module>')||true).join('\n');
-    errL(errMsg.trim().split('\n').slice(-6).join('\n'));
-  }
-  const ms=Math.round(performance.now()-t0);
-  (status==='ok'?okL:errL)(`execution ${status==='ok'?'complete':'failed'} · ${ms}ms`);
-  caretLine();
-  state.history.unshift({t:new Date().toISOString().slice(5,19).replace('T',' '),case:cur().id,line:firstLine.slice(0,60),status,ms,code:code.slice(0,4000)});
+  const id=++runSeq;
+  runJob={ id, code, firstLine, caseId:cur().id, t0:performance.now(), timer:setTimeout(()=>stopRun('timeout'), RUN_TIMEOUT_MS) };
+  setRunBtn(true);
+  if(isPhone()) setView('output');
+  worker.postMessage({ type:'run', id, code });
+}
+function logHistory(job,status,ms){
+  state.history.unshift({t:new Date().toISOString().slice(5,19).replace('T',' '),case:job.caseId,line:job.firstLine.slice(0,60),status,ms,code:job.code.slice(0,4000)});
   state.history=state.history.slice(0,30); save(); renderHistory();
-  running=false;
+}
+function finishRun(m){
+  const job=runJob; if(!job||m.id!==job.id) return;
+  clearTimeout(job.timer); runJob=null; setRunBtn(false);
+  if(m.status==='ok'){ if(m.payload!=null) resL('← '+m.payload); okL(`execution complete · ${m.ms}ms`); }
+  else if(m.status==='blank'){ sysL(`fill in the ___ blank on line ${m.payload}, then run again.`); }
+  else { errL(String(m.payload||'').trim().split('\n').slice(-8).join('\n')); errL(`execution failed · ${m.ms}ms`); }
+  caretLine();
+  logHistory(job, m.status==='ok'?'ok':m.status==='blank'?'todo':'error', m.ms);
+}
+function stopRun(reason){
+  const job=runJob; if(!job) return;
+  clearTimeout(job.timer); runJob=null;
+  try{ worker.terminate(); }catch(e){}
+  worker=null; runtimeReady=false;
+  errL(reason==='timeout'?`stopped after ${RUN_TIMEOUT_MS/1000}s (a loop that never ends?). restarting python…`:'run stopped. restarting python…');
+  logHistory(job,'error',Math.round(performance.now()-job.t0));
+  setRunBtn(false); setRunEnabled(false); setRuntime('boot','restarting runtime');
+  spawnWorker()
+    .then(()=>{ setRuntime('on','runtime online'); setRunEnabled(true); sysL('python restarted with fresh datasets. ready.'); caretLine(); })
+    .catch(e=>{ setRuntime('off','runtime offline'); errL('could not restart python: '+String((e&&e.message)||e).slice(0,120)); });
 }
 
-document.getElementById('runBtn').onclick=runCode;
+document.getElementById('runBtn').onclick=()=>{ if(runJob) stopRun('user'); else runCode(); };
 document.getElementById('clearTerm').onclick=()=>{ term.innerHTML=''; caretLine(); };
 document.getElementById('exportBtn').onclick=()=>{
   const blob=new Blob([transcript.join('\n')],{type:'text/plain'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='soc_console_transcript.txt'; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='soc_console_transcript.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   sysL('transcript exported to soc_console_transcript.txt');
 };
 
@@ -1137,7 +1311,7 @@ function renderHistory(){
   if(!state.history.length){ el.innerHTML='<div class="text-[10px] text-slate-600 px-2 py-3 tracking-wider uppercase">no executions on record — run something.</div>'; return; }
   el.innerHTML=state.history.map((h,i)=>`
     <button onclick="restoreRun(${i})" class="w-full flex items-center gap-2 px-2 py-1.5 rounded border border-transparent hover:border-[#1e293b] hover:bg-[#ffffff04] transition-all text-left">
-      <span class="w-1.5 h-1.5 rounded-full ${h.status==='ok'?'bg-[#00ff66]':'bg-[#ff3366]'} shrink-0"></span>
+      <span class="w-1.5 h-1.5 rounded-full ${h.status==='ok'?'bg-[#00ff66]':h.status==='todo'?'bg-[#ffb000]':'bg-[#ff3366]'} shrink-0"></span>
       <span class="text-[9px] text-slate-500 shrink-0">${h.t}</span>
       <span class="text-[9px] px-1.5 rounded border border-[#00f3ff]/30 text-[#00f3ff]/80 shrink-0">C${String(h.case).padStart(2,'0')}</span>
       <span class="text-[10px] text-slate-400 truncate">${esc(h.line)}</span>
@@ -1153,10 +1327,14 @@ function sampleRow(name){
   sysL(`sample ${name}[*] ::`);
   tline(esc(JSON.stringify(sample)),'text-[#00f3ff]/80');
   term.scrollTop=term.scrollHeight;
+  if(isPhone()) setView('output');
 }
 
 function normVal(v,mode){
-  v=String(v||'').trim();
+  v=String(v||'').trim()
+    .replace(/\\\\/g,'\\')                 // python repr shows \\ for one backslash
+    .replace(/^[\[\(\{]+|[\]\)\}]+$/g,'');  // pasted list / tuple / set brackets
+  if(mode==='num') return v.replace(/[,_\s]/g,'');
   if(mode==='digits') return (v.match(/\d+/g)||[]).join(',');
   let s=v.replace(/[→➔➜]/g,',').toLowerCase().replace(/(["'`])/g,'').replace(/\s+/g,' ');
   if(mode==='lc') return s.trim();
@@ -1224,6 +1402,45 @@ noteEl.addEventListener('input',()=>{
 });
 
 /* ================================================================
+   9a. PHONES :: one view at a time (Case / Code / Output) + Back button
+================================================================ */
+const phoneMQ=window.matchMedia('(max-width: 1023px)');
+const isPhone=()=>phoneMQ.matches;
+let viewPushed=false, ignorePop=0;
+function setView(v,opts){
+  opts=opts||{};
+  document.body.dataset.view=v;
+  document.querySelectorAll('#mnav button').forEach(b=>{
+    if(b.dataset.view===v){ b.setAttribute('aria-current','page'); b.classList.remove('dot'); } else b.removeAttribute('aria-current');
+  });
+  if(!isPhone()) return;
+  if(!opts.keepScroll) window.scrollTo({top:0});
+  if(opts.fromPop){ viewPushed=false; return; }
+  if(opts.noHistory) return;               // only taps create Back-button entries
+  if(v!=='case'&&!viewPushed){ try{ history.pushState({soc:'view'},''); viewPushed=true; }catch(e){} }
+  else if(v==='case'&&viewPushed){ viewPushed=false; ignorePop++; history.back(); }
+}
+window.addEventListener('popstate',()=>{ if(ignorePop){ ignorePop--; return; } if(viewPushed) setView('case',{fromPop:true}); });
+document.querySelectorAll('#mnav button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+document.getElementById('toFindings').onclick=()=>{ setView('case'); setTimeout(()=>document.getElementById('verifyBox').scrollIntoView({behavior:'smooth',block:'start'}),60); };
+document.addEventListener('focusin',e=>{ if(isPhone()&&e.target.matches('textarea, input')) document.body.classList.add('typing'); });
+document.addEventListener('focusout',e=>{ if(e.target.matches('textarea, input')) document.body.classList.remove('typing'); });
+
+// key bar: the characters Python needs that phone keyboards hide
+const KEYS=[['⇥','    ','tab'],[':',':','colon'],['(','(','open paren'],[')',')','close paren'],['[','[','open bracket'],[']',']','close bracket'],
+  ["'","'",'quote'],['"','"','double quote'],['=','=','equals'],['_','_','underscore'],['.','.','dot'],[',',',','comma'],['#','# ','comment'],['{','{','open brace'],['}','}','close brace']];
+const kb=document.getElementById('keybar');
+kb.innerHTML=KEYS.map((k,i)=>`<button type="button" data-k="${i}" aria-label="insert ${k[2]}">${esc(k[0])}</button>`).join('');
+kb.addEventListener('pointerdown',e=>e.preventDefault());   // keep focus (and the keyboard) in the editor
+kb.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const ins=KEYS[+b.dataset.k][1], p=ed.selectionStart, q=ed.selectionEnd;
+  ed.value=ed.value.slice(0,p)+ins+ed.value.slice(q);
+  ed.selectionStart=ed.selectionEnd=p+ins.length;
+  ed.focus(); syncGutter(); persistCode();
+});
+
+/* ================================================================
    9. BOOT SEQUENCE
 ================================================================ */
 function bootLine(html,cls){ const d=document.createElement('div'); d.className=cls||'text-slate-400'; d.innerHTML=html; const bl=document.getElementById('bootlog'); bl.appendChild(d); bl.scrollTop=bl.scrollHeight; }
@@ -1235,6 +1452,7 @@ function dismissBoot(){
 async function init(){
   if(!CASES.find(c=>c.id===state.active)) state.active=1;
   renderCaseGrid(); renderToolkit(); renderDossier(); renderHistory(); updateProgress();
+  setView('case',{noHistory:true});
   ed.value=state.code[state.active]!==undefined?state.code[state.active]:cur().starter;
   syncGutter(); caretLine();
   document.getElementById('runBtn').classList.add('opacity-40','pointer-events-none');
@@ -1257,7 +1475,7 @@ async function init(){
     setBar(100);
     bootLine('');
     bootLine('<span class="text-[#00ff66] glow-g">▸ RUNTIME ONLINE — welcome to the floor, analyst. ctrl+enter to execute.</span>');
-    sysL('pyodide runtime online — python 3.12 (wasm32). datasets live in globals.');
+    sysL('pyodide runtime online (python 3.12, wasm32). every run gets fresh copies of the datasets.');
     okL('all 10 case datasets mounted. the floor is yours, analyst.');
     caretLine();
     setTimeout(dismissBoot, 900);
