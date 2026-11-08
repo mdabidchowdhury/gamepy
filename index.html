@@ -147,15 +147,19 @@
         },
       },
       {
-        path: 'soc-logger/',                            // ← the SOC Logger's folder
+        path: 'soc-logger/',
         title: 'The SOC Logger',
         lang: 'Python',
         accent: '#4cc9f0',
-        blurb: 'Learn Python on a security operations shift: parse logs, audit activity and practise basic blue-team defence.',   // ← one-line pitch
-        topics: ['log parsing', 'auditing', 'blue teaming', 'Python basics'],                                                    // ← what it covers
+        blurb: 'Hunt through synthetic SOC telemetry with real Python: brute force, beacons, DNS tunnels, credential dumping and a full kill chain.',
+        topics: ['comprehensions', 'collections', 'datetime & regex', 'threat hunting'],
         snippet: ['for line in open("auth.log"):', '    if "Failed password" in line:', '        ip = line.split()[-4]', '        fails[ip] += 1'],
         emblem: 'shield',
-        // progress() { ... }  ← optional: read its localStorage and return e.g. '<b>3/8</b> incidents closed'
+        progress() {
+          const s = JSON.parse(localStorage.getItem('socli_v1') || '{}');
+          const n = (s.solved || []).length;
+          return n ? `<b>${n}/10</b> cases closed` : null;
+        },
       },
     ];
     /* ==================================================================== */
