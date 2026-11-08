@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOC Analyst: Python Log Inspector</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14; --card:#141b24; --grn:#00ff66; --cyn:#00f3ff; --red:#ff3366; --amb:#ffb000;
+    --line:#1e293b; --dim:#64748b;
+  }
+  html{ scrollbar-color:#1e293b #0b0e14; }
+  body{ background:var(--bg); font-family:'JetBrains Mono', ui-monospace, monospace; }
+  ::-webkit-scrollbar{ width:9px; height:9px; }
+  ::-webkit-scrollbar-track{ background:#0b0e14; }
+  ::-webkit-scrollbar-thumb{ background:#1e293b; border-radius:4px; border:2px solid #0b0e14; }
+  ::-webkit-scrollbar-thumb:hover{ background:#00f3ff44; }
+  ::selection{ background:#00ff6633; color:#e2fbe9; }
+
+  /* ambient FX layers */
+  .scanlines{ position:fixed; inset:0; z-index:70; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,.016) 0 1px, transparent 1px 3px); mix-blend-mode:overlay; }
+  .vignette{ position:fixed; inset:0; z-index:69; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(0,0,0,.5) 100%); }
+  .gridbg{ position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:radial-gradient(#00f3ff12 1px, transparent 1px); background-size:26px 26px; opacity:.5; }
+
+  .glow-g{ text-shadow:0 0 6px #00ff6688, 0 0 22px #00ff6633; }
+  .glow-c{ text-shadow:0 0 6px #00f3ff88, 0 0 22px #00f3ff33; }
+  .glow-r{ text-shadow:0 0 6px #ff336688, 0 0 22px #ff336633; }
+
+  .led{ width:8px; height:8px; border-radius:9999px; }
+  .led-boot{ background:var(--amb); box-shadow:0 0 8px var(--amb); animation:ledp 1s ease-in-out infinite; }
+  .led-on{ background:var(--grn); box-shadow:0 0 10px var(--grn); animation:ledp 2.6s ease-in-out infinite; }
+  .led-off{ background:var(--red); box-shadow:0 0 10px var(--red); }
+  @keyframes ledp{ 0%,100%{opacity:1} 50%{opacity:.35} }
+
+  .blink{ animation:blk 1.05s steps(1) infinite; }
+  @keyframes blk{ 0%,55%{opacity:1} 56%,100%{opacity:0} }
+
+  .card{ background:linear-gradient(180deg,#161d28 0%, #121722 100%); border:1px solid var(--line);
+    box-shadow:0 10px 30px -18px #000, inset 0 1px 0 #ffffff08; }
+  .sect-h{ font-size:10px; letter-spacing:.28em; color:#7dd3fc99; text-transform:uppercase; }
+  .sect-h::before{ content:'// '; color:#00f3ff66; }
+
+  details>summary{ list-style:none; cursor:pointer; }
+  details>summary::-webkit-details-marker{ display:none; }
+  details .chev{ transition:transform .25s ease; }
+  details[open] .chev{ transform:rotate(180deg); }
+
+  .shake{ animation:shk .4s ease; }
+  @keyframes shk{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+  .fadeup{ animation:fup .5s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes fup{ from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+
+  .tIn::-webkit-scrollbar{ width:6px; }
+  textarea{ caret-color:#00ff66; }
+  textarea:focus, input:focus{ outline:none; }
+
+  .btn-g{ background:#00ff6612; border:1px solid #00ff6640; color:var(--grn); transition:all .18s ease; }
+  .btn-g:hover{ background:#00ff6624; box-shadow:0 0 18px -4px #00ff6688; }
+  .btn-c{ background:#00f3ff0e; border:1px solid #00f3ff33; color:var(--cyn); transition:all .18s ease; }
+  .btn-c:hover{ background:#00f3ff1f; box-shadow:0 0 18px -4px #00f3ff77; }
+  .btn-dim{ background:#ffffff06; border:1px solid #ffffff14; color:#94a3b8; transition:all .18s ease; }
+  .btn-dim:hover{ color:#e2e8f0; border-color:#ffffff30; }
+
+  .bootbar{ background:linear-gradient(90deg,#00f3ff,#00ff66); box-shadow:0 0 14px #00ff6688; transition:width .3s ease; }
+  .term-line{ white-space:pre-wrap; word-break:break-word; }
+</style>
+</head>
+<body class="text-slate-300 text-[13px] leading-relaxed overflow-x-hidden">
+
+<div class="gridbg"></div>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<!-- BOOT OVERLAY -->
+<div id="boot" class="fixed inset-0 z-[80] bg-[#0b0e14] flex items-center justify-center p-4 transition-opacity duration-500">
+  <div class="w-full max-w-2xl card rounded-md overflow-hidden fadeup">
+    <div class="flex items-center gap-2 px-4 py-2.5 border-b border-[#1e293b] bg-[#0e1420]">
+      <span class="w-2.5 h-2.5 rounded-full bg-[#ff3366]/70"></span>
+      <span class="w-2.5 h-2.5 rounded-full bg-[#ffb000]/70"></span>
+      <span class="w-2.5 h-2.5 rounded-full bg-[#00ff66]/70"></span>
+      <span class="ml-3 text-[10px] tracking-[.25em] text-slate-500">PYODIDE // RUNTIME LOADER</span>
+    </div>
+    <div class="p-5">
+      <pre class="text-[12px] leading-5 text-[#00f3ff] glow-c mb-4 select-none"> ____  ___   ____     __  ___
+/ ___|/ _ \ / ___|   / / / /  PYTHON LOG INSPECTOR
+\___ \ | | | |      / /_/ /   DEFENSIVE TELEMETRY AUDIT SIM
+ ___) | |_| | |___  / __  /    v2.1 :: WASM BUILD 0.26.1
+|____/ \___/ \____|/_/ /_/</pre>
+      <div id="bootlog" class="h-40 overflow-hidden text-[11.5px] leading-[1.7]"></div>
+      <div class="mt-4 h-1 bg-[#1e293b] rounded overflow-hidden"><div id="bootbar" class="bootbar h-full w-0 rounded"></div></div>
+      <button id="skipboot" class="mt-4 hidden btn-dim text-[10px] tracking-[.2em] px-3 py-1.5 rounded uppercase">continue offline →</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="relative z-10 h-14 border-b border-[#1e293b] bg-[#0d1220]/90 backdrop-blur flex items-center px-4 gap-4">
+  <div class="flex items-center gap-2.5 min-w-0">
+    <div class="w-8 h-8 rounded border border-[#00ff66]/40 bg-[#00ff66]/10 flex items-center justify-center">
+      <i data-lucide="shield" class="w-4 h-4 text-[#00ff66]"></i>
+    </div>
+    <div class="leading-tight min-w-0">
+      <div class="text-[12px] font-extrabold tracking-[.18em] text-slate-100 truncate">SOC ANALYST <span class="text-[#00ff66] glow-g">::</span> PYTHON LOG INSPECTOR</div>
+      <div class="text-[9px] tracking-[.3em] text-slate-500 uppercase">defensive telemetry audit simulator</div>
+    </div>
+  </div>
+  <div class="flex-1"></div>
+  <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded border border-[#1e293b] bg-[#ffffff04]">
+    <span id="rtLed" class="led led-boot"></span>
+    <span id="rtTxt" class="text-[10px] tracking-[.2em] text-[#ffb000] uppercase">booting runtime</span>
+  </div>
+  <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded border border-[#1e293b] bg-[#ffffff04]" title="Cases solved">
+    <i data-lucide="medal" class="w-3.5 h-3.5 text-[#00f3ff]"></i>
+    <span id="rankTxt" class="text-[10px] tracking-[.2em] text-[#00f3ff] uppercase">CADET</span>
+  </div>
+  <div class="flex items-center gap-2 px-3 py-1.5 rounded border border-[#1e293b] bg-[#ffffff04]">
+    <div class="w-20 h-1.5 bg-[#1e293b] rounded overflow-hidden"><div id="progBar" class="h-full bg-[#00ff66] rounded transition-all duration-500" style="width:0%"></div></div>
+    <span id="progTxt" class="text-[10px] tracking-[.15em] text-slate-400">0/10</span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="relative z-10 grid grid-cols-1 lg:grid-cols-[470px_minmax(0,1fr)] gap-3 p-3 lg:h-[calc(100vh-56px-30px)]">
+
+  <!-- ========== LEFT : INCIDENT DOSSIER ========== -->
+  <aside class="lg:overflow-y-auto lg:min-h-0 pr-1 space-y-3">
+
+    <!-- case selector -->
+    <section class="card rounded-md p-4 fadeup">
+      <div class="sect-h mb-3">incident queue :: select case file</div>
+      <div id="caseGrid" class="grid grid-cols-5 gap-1.5"></div>
+    </section>
+
+    <!-- dossier -->
+    <section id="dossier" class="space-y-3"></section>
+
+    <!-- toolkit -->
+    <section class="card rounded-md p-4 fadeup">
+      <details id="tkDetails" open>
+        <summary class="flex items-center justify-between">
+          <span class="sect-h">python reference toolkit</span>
+          <i data-lucide="chevron-down" class="chev w-3.5 h-3.5 text-slate-500"></i>
+        </summary>
+        <div class="mt-1 text-[10px] text-slate-500 mb-3">click a module to inject the snippet into the console buffer.</div>
+        <div id="toolkit" class="grid grid-cols-2 gap-1.5"></div>
+      </details>
+    </section>
+
+    <!-- verification -->
+    <section id="verifyBox" class="card rounded-md p-4 fadeup"></section>
+
+    <!-- hints -->
+    <section id="hintBox" class="card rounded-md p-4 fadeup"></section>
+
+    <!-- notes -->
+    <section class="card rounded-md p-4 fadeup">
+      <div class="flex items-center justify-between mb-2">
+        <span class="sect-h">field notes scratchpad</span>
+        <span id="noteSaved" class="text-[9px] tracking-[.2em] text-slate-600 uppercase flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>idle
+        </span>
+      </div>
+      <textarea id="notes" spellcheck="false" rows="5" placeholder="-- analyst scratchpad. observations, dead ends, IOC fragments..."
+        class="w-full bg-[#0b0e14]/80 border border-[#1e293b] rounded p-3 text-[12px] text-slate-300 placeholder:text-slate-600 focus:border-[#00f3ff]/40 resize-y"></textarea>
+    </section>
+  </aside>
+
+  <!-- ========== RIGHT : PYTHON CONSOLE ========== -->
+  <section class="flex flex-col gap-3 lg:min-h-0">
+
+    <!-- editor -->
+    <div class="card rounded-md flex flex-col fadeup lg:h-[46%] min-h-[300px]">
+      <div class="flex items-center gap-2 px-3 py-2 border-b border-[#1e293b] bg-[#0e1420] rounded-t-md">
+        <i data-lucide="terminal" class="w-3.5 h-3.5 text-[#00f3ff]"></i>
+        <span class="text-[10px] tracking-[.25em] text-slate-400 uppercase">python console</span>
+        <span class="px-2 py-0.5 rounded text-[9px] border border-[#00f3ff]/30 text-[#00f3ff]/90 bg-[#00f3ff]/5 ml-1" id="fileChip">audit_case01.py</span>
+        <div class="flex-1"></div>
+        <button id="solBtn" class="btn-dim text-[9px] tracking-[.18em] px-2.5 py-1 rounded uppercase flex items-center gap-1.5" title="Reference solution unlocks after case resolution">
+          <i data-lucide="lock" class="w-3 h-3"></i><span id="solBtnTxt">solution locked</span>
+        </button>
+        <button id="clearTerm" class="btn-dim text-[9px] tracking-[.18em] px-2.5 py-1 rounded uppercase flex items-center gap-1.5" title="Clear terminal">
+          <i data-lucide="eraser" class="w-3 h-3"></i>clear
+        </button>
+        <button id="runBtn" class="btn-g text-[10px] tracking-[.18em] px-4 py-1.5 rounded uppercase flex items-center gap-2 font-bold" title="Execute (Ctrl+Enter)">
+          <i data-lucide="play" class="w-3.5 h-3.5"></i>RUN
+        </button>
+      </div>
+      <div class="flex flex-1 min-h-0">
+        <div id="gutter" class="w-10 shrink-0 overflow-hidden bg-[#0c1018] border-r border-[#1e293b] text-right pr-2 pt-3 text-[12.5px] leading-[1.55] text-slate-600 select-none">1</div>
+        <textarea id="editor" spellcheck="false" placeholder="# awaiting runtime..."
+          class="flex-1 bg-[#0b0e14]/60 text-[#c9f7d9] text-[12.5px] leading-[1.55] p-3 pt-3 resize-none placeholder:text-slate-700 whitespace-pre overflow-auto"></textarea>
+      </div>
+      <div class="flex items-center gap-3 px-3 py-1.5 border-t border-[#1e293b] text-[9px] tracking-[.18em] text-slate-500 uppercase">
+        <span class="flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3 text-[#ffb000]"></i>ctrl+enter execute</span>
+        <span class="hidden sm:inline">tab = 4sp</span>
+        <span class="hidden sm:inline">autosave: on</span>
+        <div class="flex-1"></div>
+        <span id="editorMeta" class="text-slate-600">0 lines</span>
+      </div>
+    </div>
+
+    <!-- terminal -->
+    <div class="card rounded-md flex flex-col flex-1 min-h-[220px] lg:min-h-0 fadeup">
+      <div class="flex items-center gap-2 px-3 py-2 border-b border-[#1e293b] bg-[#0e1420] rounded-t-md">
+        <span id="termDot" class="led led-boot"></span>
+        <span class="text-[10px] tracking-[.25em] text-slate-400 uppercase">execution terminal :: stdout / stderr / returns</span>
+        <div class="flex-1"></div>
+        <button id="exportBtn" class="btn-dim text-[9px] tracking-[.18em] px-2.5 py-1 rounded uppercase flex items-center gap-1.5" title="Download transcript">
+          <i data-lucide="download" class="w-3 h-3"></i>export
+        </button>
+      </div>
+      <div id="term" class="flex-1 overflow-y-auto p-3 text-[12px] leading-[1.6] bg-[#0a0d12]/70 font-normal"></div>
+    </div>
+
+    <!-- history -->
+    <div class="card rounded-md fadeup lg:h-[128px] h-[140px] flex flex-col">
+      <div class="flex items-center gap-2 px-3 py-2 border-b border-[#1e293b] bg-[#0e1420] rounded-t-md">
+        <i data-lucide="history" class="w-3.5 h-3.5 text-[#00f3ff]"></i>
+        <span class="text-[10px] tracking-[.25em] text-slate-400 uppercase">audit trail :: run history</span>
+        <div class="flex-1"></div>
+        <button id="histClear" class="btn-dim text-[9px] tracking-[.18em] px-2 py-0.5 rounded uppercase">purge</button>
+      </div>
+      <div id="histList" class="flex-1 overflow-y-auto p-1.5 space-y-1"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="relative z-10 h-[30px] border-t border-[#1e293b] bg-[#0d1220]/90 flex items-center px-4 gap-4 text-[9px] tracking-[.22em] text-slate-600 uppercase">
+  <span>dispatch // all telemetry is synthetic mock data for blue-team training</span>
+  <div class="flex-1"></div>
+  <span class="hidden sm:inline">sandbox: pyodide wasm · in-memory only</span>
+  <span class="text-[#00ff66]/70">stay curious, defender</span>
+</footer>
+
+<script>
+/* ================================================================
+   0. DETERMINISTIC MOCK TELEMETRY GENERATORS (seeded RNG)
+================================================================ */
+const pad = n => String(n).padStart(2,'0');
+const tsx = (d,h,m,s) => `2024-11-${pad(d)} ${pad(h)}:${pad(m)}:${pad(s)}`;
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const ir = (r,a,b) => a + Math.floor(r()*(b-a+1));
+const pick = (r,arr) => arr[ir(r,0,arr.length-1)];
+function hex(r,n){ const c='0123456789abcdef'; let s=''; for(let i=0;i<n;i++) s+=c[Math.floor(r()*16)]; return s; }
+function clockAdd(t, sec){ t.s += sec; while(t.s>59){t.s-=60;t.m++;} while(t.m>59){t.m-=60;t.h++;} return t; }
+
+const DATA = {};     // dataset name -> rows
+const SETNAMES = []; // datasets that become python sets
+
+/* ---- CASE 1 : auth_logs -------------------------------------- */
+(function(){ const r = mulberry32(101); const L=[];
+  const ports=[22,443,3389], users=['jdoe','msmith','agarcia','bwong','cjones','guest'];
+  for(let i=0;i<6;i++){
+    const ip=`10.10.${ir(r,1,20)}.${ir(r,2,250)}`;
+    for(let k=0,n=ir(r,2,5);k<n;k++) L.push({timestamp:tsx(12,ir(r,8,17),ir(r,0,59),ir(r,0,59)),src_ip:ip,username:pick(r,users),status:'FAILED',port:pick(r,ports)});
+    for(let k=0,n=ir(r,1,3);k<n;k++) L.push({timestamp:tsx(12,ir(r,8,17),ir(r,0,59),ir(r,0,59)),src_ip:ip,username:pick(r,users),status:'SUCCESS',port:pick(r,ports)});
+  }
+  for(let k=0;k<12;k++) L.push({timestamp:tsx(12,11,ir(r,0,59),ir(r,0,59)),src_ip:'198.51.100.9',username:'admin',status:'FAILED',port:22});
+  const t={h:14,m:2,s:11};
+  for(let k=0;k<42;k++){ L.push({timestamp:tsx(12,t.h,t.m,t.s),src_ip:'203.0.113.77',username:'admin',status:'FAILED',port:22}); clockAdd(t, ir(r,18,34)); }
+  L.sort((a,b)=>a.timestamp<b.timestamp?-1:1);
+  DATA.auth_logs=L;
+})();
+
+/* ---- CASE 2 : web_access_logs -------------------------------- */
+(function(){ const r = mulberry32(202); const L=[];
+  const uris=['/','/login','/static/app.js','/api/v1/users','/products/item?id=12','/health','/docs/index.html','/api/v1/orders?limit=50','/img/logo.png','/cart/view','/about','/api/v1/session'];
+  for(let i=0;i<64;i++){
+    const post = r()<0.12;
+    L.push({timestamp:tsx(13,ir(r,0,23),ir(r,0,59),ir(r,0,59)),
+      client_ip:`10.${pick(r,[10,20])}.${ir(r,1,40)}.${ir(r,2,250)}`,
+      method: post?'POST':'GET', uri: post?'/login':pick(r,uris),
+      status_code: post?302:pick(r,[200,200,200,304,404,403]),
+      bytes_sent: ir(r,220,9400)});
+  }
+  const atk=[['/search?q=%27%20OR%20%271%27%3D%271--',15400,'GET'],
+             ['/view?cmd=%63%61%74%20%2fetc%2fshadow',22100,'GET'],
+             ['/download?f=..%2f..%2f..%2fetc%2fpasswd',18750,'GET'],
+             ['/api/query?data=eyJ1c2VySWQiOiJhZG1pbiIsInJvbGUiOiJzeXMifQ%3D%3D',19980,'POST'],
+             ['/products/item?id=1%20UNION%20SELECT%20username,password%20FROM%20users',23120,'GET'],
+             ['/redirect?next=%3Cscript%3Efetch(%27http:%2f%2f203.0.113.9%2fc%27)%3C%2fscript%3E',17640,'GET']];
+  const t={h:2,m:11,s:4};
+  atk.forEach(a=>{ clockAdd(t, ir(r,150,290));
+    L.push({timestamp:tsx(13,t.h,t.m,t.s),client_ip:'198.51.100.23',method:a[2],uri:a[0],status_code:200,bytes_sent:a[1]}); });
+  L.sort((a,b)=>a.timestamp<b.timestamp?-1:1);
+  DATA.web_access_logs=L;
+})();
+
+/* ---- CASE 3 : endpoint_logs + malicious_hashes --------------- */
+(function(){ const r = mulberry32(303);
+  const mal=[]; for(let i=0;i<5;i++) mal.push(hex(r,64));
+  const files=['C:\\Program Files\\AcmeApp\\acme.exe','C:\\Windows\\System32\\notepad.exe','C:\\Tools\\7z\\7z.exe','C:\\Program Files\\WebBrowser\\browser.exe','C:\\Utils\\pslist64.exe','C:\\Windows\\explorer.exe','C:\\Program Files\\Office\\EXCEL.EXE','C:\\Windows\\System32\\calc.exe'];
+  const users=['k.owens','a.diaz','m.holt','j.chen','p.reyes','svc_back','l.wu'];
+  const L=[];
+  for(let i=0;i<40;i++) L.push({hostname:`WS-${pad(ir(r,1,12))}`,user:pick(r,users),filepath:pick(r,files),sha256_hash:hex(r,64)});
+  L.push({hostname:'WS-04',user:'k.owens', filepath:'C:\\Users\\Public\\runtime.exe',           sha256_hash:mal[1]});
+  L.push({hostname:'WS-07',user:'a.diaz',  filepath:'C:\\Users\\Public\\svchost-cache.exe',     sha256_hash:mal[3]});
+  L.push({hostname:'WS-11',user:'m.holt',  filepath:'C:\\ProgramData\\upd\\svc_update.exe',     sha256_hash:mal[4]});
+  DATA.endpoint_logs=L; DATA.malicious_hashes=mal; SETNAMES.push('malicious_hashes');
+})();
+
+/* ---- CASE 4 : firewall_flows --------------------------------- */
+(function(){ const r = mulberry32(404); const L=[];
+  const ext=['203.0.113','198.51.100','192.0.2'];
+  for(let i=0;i<70;i++) L.push({timestamp:tsx(19,ir(r,0,21),ir(r,0,59),ir(r,0,59)),
+    src_ip:`10.20.${ir(r,1,40)}.${ir(r,2,250)}`,
+    dst_ip:(r()<0.6)?`${pick(r,ext)}.${ir(r,2,250)}`:`10.20.${ir(r,1,40)}.${ir(r,2,250)}`,
+    dst_port:pick(r,[80,443,53,123,25,8080,21]), bytes:ir(r,300,90000)});
+  const b={h:22,m:0,s:7};
+  for(let k=0;k<12;k++){ L.push({timestamp:tsx(19,b.h,b.m,b.s),src_ip:'10.20.30.55',dst_ip:'203.0.113.200',dst_port:4444,bytes:ir(r,280,420)}); clockAdd(b, 60+ir(r,-1,1)); }
+  const d={h:21,m:30,s:0};
+  for(let k=0;k<8;k++){ L.push({timestamp:tsx(19,d.h,d.m,d.s),src_ip:'10.20.30.91',dst_ip:'10.20.30.1',dst_port:53,bytes:92}); clockAdd(d,300); }
+  L.sort((a,b)=>a.timestamp<b.timestamp?-1:1);
+  DATA.firewall_flows=L;
+})();
+
+/* ---- CASE 5 : ad_logs ---------------------------------------- */
+(function(){ const r = mulberry32(505); const L=[];
+  const users=[['j.chen',['WS-101','WS-102']],['p.reyes',['WS-103']],['a.khan',['WS-104','WS-105']],['l.wu',['WS-106']],['d.silva',['WS-110']],['m.holt',['WS-111']],['r.patel',['WS-112']],['t.nguyen',['WS-113']]];
+  users.forEach(u=>{ for(let k=0,n=ir(r,2,6);k<n;k++) L.push({timestamp:tsx(20,ir(r,8,17),ir(r,0,59),ir(r,0,59)),user_id:u[0],workstation_id:pick(r,u[1]),event_id:4624,auth_status:'SUCCESS'}); });
+  const offs=[0,3,5,9,12,15,18], t0={h:9,m:41,s:2};
+  offs.forEach((o,i)=>{ const t={...t0}; clockAdd(t, o*60+ir(r,3,40));
+    L.push({timestamp:tsx(20,t.h,t.m,t.s),user_id:'svc_deploy',workstation_id:`WS-1${pad(2+i)}`,event_id:i<5?4625:4624,auth_status:i<5?'FAILURE':'SUCCESS'}); });
+  [0,8,20,41].forEach((o,i)=>{ const t={h:15,m:10,s:0}; clockAdd(t,o*60);
+    L.push({timestamp:tsx(20,t.h,t.m,ir(r,0,59)),user_id:'admin.emergency',workstation_id:['WS-101','WS-107','WS-109','WS-104'][i],event_id:4624,auth_status:'SUCCESS'}); });
+  L.sort((a,b)=>a.timestamp<b.timestamp?-1:1);
+  DATA.ad_logs=L;
+})();
+
+/* ---- CASE 6 : dns_logs --------------------------------------- */
+(function(){ const r = mulberry32(606); const L=[];
+  const dom=['www.google.com','updates.microsoft.com','cdn.company.net','mail.company.com','a1839.dscq.akamai.net','static.assets.example.io','api.weather.gov','time.cloudflare.com','pypi.org','files.pythonhosted.org','edge-cache-01.lb.vendorcdn.net'];
+  for(let i=0;i<50;i++) L.push({timestamp:tsx(21,ir(r,0,23),ir(r,0,59),ir(r,0,59)),client_ip:`10.20.${ir(r,1,40)}.${ir(r,2,250)}`,query_domain:pick(r,dom),record_type:pick(r,['A','A','AAAA','PTR','MX','A'])});
+  const msg='ACCT=backup_admin;TOKEN=f9a2c77;HOST=WS-04';
+  const b64=btoa(msg); // 42 chars source -> 56 b64 chars, zero padding (chunk-safe)
+  const chunks=[b64.slice(0,14),b64.slice(14,28),b64.slice(28,42),b64.slice(42)];
+  const t={h:3,m:33,s:4};
+  chunks.forEach(c=>{ clockAdd(t,7); L.push({timestamp:tsx(21,t.h,t.m,t.s),client_ip:'10.20.31.88',query_domain:`${c}.sync-metrics.net`,record_type:'TXT'}); });
+  L.sort((a,b)=>a.timestamp<b.timestamp?-1:1);
+  DATA.dns_logs=L;
+})();
+
+/* ---- CASE 7 : process_logs ----------------------------------- */
+(function(){ const T=(h,m,s)=>tsx(22,h,m,s); const L=[
+  {process_id:496, parent_process_id:4,   process_name:'system',               cmdline:'system',                                   timestamp:T(8,59,55)},
+  {process_id:700, parent_process_id:496, process_name:'wininit.exe',          cmdline:'wininit.exe',                                timestamp:T(8,59,58)},
+  {process_id:812, parent_process_id:700, process_name:'services.exe',         cmdline:'services.exe',                               timestamp:T(9,0,1)},
+  {process_id:900, parent_process_id:812, process_name:'svchost.exe',          cmdline:'svchost.exe -k netsvcs',                     timestamp:T(9,0,3)},
+  {process_id:948, parent_process_id:812, process_name:'svchost.exe',          cmdline:'svchost.exe -k LocalService',                timestamp:T(9,0,4)},
+  {process_id:1024,parent_process_id:900, process_name:'spoolsv.exe',          cmdline:'spoolsv.exe',                                timestamp:T(9,0,11)},
+  {process_id:3048,parent_process_id:700, process_name:'userinit.exe',         cmdline:'userinit.exe',                               timestamp:T(9,1,10)},
+  {process_id:3200,parent_process_id:3048,process_name:'explorer.exe',         cmdline:'explorer.exe',                               timestamp:T(9,1,14)},
+  {process_id:3622,parent_process_id:3200,process_name:'chrome.exe',           cmdline:'chrome.exe --type=browser',                  timestamp:T(9,10,2)},
+  {process_id:3655,parent_process_id:3622,process_name:'chrome.exe',           cmdline:'chrome.exe --type=renderer',                 timestamp:T(9,10,6)},
+  {process_id:3660,parent_process_id:3622,process_name:'chrome_crashpad.exe',  cmdline:'chrome_crashpad.exe --handler',              timestamp:T(9,10,6)},
+  {process_id:4400,parent_process_id:3200,process_name:'Teams.exe',            cmdline:'Teams.exe',                                  timestamp:T(9,18,40)},
+  {process_id:4412,parent_process_id:4400,process_name:'Teams.exe',            cmdline:'Teams.exe --type=gpu',                       timestamp:T(9,18,44)},
+  {process_id:4050,parent_process_id:3200,process_name:'OUTLOOK.EXE',          cmdline:'OUTLOOK.EXE /embedding',                     timestamp:T(9,2,3)},
+  {process_id:4100,parent_process_id:4050,process_name:'WINWORD.EXE',          cmdline:'WINWORD.EXE /n "Q4_Invoice.docm"',           timestamp:T(9,2,31)},
+  {process_id:4112,parent_process_id:4100,process_name:'powershell.exe',       cmdline:'powershell.exe -NoP -NonI -W Hidden -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQA', timestamp:T(9,2,44)},
+  {process_id:4130,parent_process_id:4112,process_name:'cmd.exe',              cmdline:'cmd.exe /c whoami /priv & net view',         timestamp:T(9,3,12)},
+  {process_id:4155,parent_process_id:4130,process_name:'vssadmin.exe',         cmdline:'vssadmin.exe Delete Shadows /all /quiet',    timestamp:T(9,3,57)},
+  {process_id:4210,parent_process_id:3200,process_name:'WINWORD.EXE',          cmdline:'WINWORD.EXE /n "meeting-notes.docx"',        timestamp:T(9,20,15)},
+  {process_id:4300,parent_process_id:3200,process_name:'EXCEL.EXE',            cmdline:'EXCEL.EXE /e budget.xlsx',                   timestamp:T(9,25,51)},
+  {process_id:4350,parent_process_id:4300,process_name:'OfficeClickToRun.exe', cmdline:'OfficeClickToRun.exe service',               timestamp:T(9,26,2)},
+  {process_id:4500,parent_process_id:900, process_name:'SearchIndexer.exe',    cmdline:'SearchIndexer.exe /Embedding',               timestamp:T(9,30,0)},
+  {process_id:4600,parent_process_id:3200,process_name:'notepad.exe',          cmdline:'notepad.exe todo.txt',                       timestamp:T(9,35,21)},
+  {process_id:4700,parent_process_id:3048,process_name:'logoff.scr',           cmdline:'logoff.scr /s',                              timestamp:T(10,2,0)} ];
+  DATA.process_logs=L;
+})();
+
+/* ---- CASE 8 : sysmon_logs ------------------------------------ */
+(function(){ const r = mulberry32(808); const L=[];
+  const imgs=['C:\\Windows\\System32\\svchost.exe','C:\\Windows\\System32\\taskhostw.exe','C:\\Program Files\\AcmeApp\\acme.exe','C:\\Windows\\explorer.exe','C:\\Windows\\System32\\RuntimeBroker.exe'];
+  for(let i=0;i<36;i++) L.push({timestamp:tsx(23,ir(r,8,17),ir(r,0,59),ir(r,0,59)),event_id:pick(r,[1,3,11,12,13]),image:pick(r,imgs),target_filename:'-',granted_access:'-',user:pick(r,['WKS22\\jdoe','WKS05\\akhan','NT AUTHORITY\\SYSTEM','WKS11\\lwu'])});
+  L.push({timestamp:tsx(23,9,14,55),event_id:10,image:'C:\\Windows\\System32\\svchost.exe',target_filename:'C:\\Windows\\System32\\lsass.exe',granted_access:'0x1000',user:'NT AUTHORITY\\SYSTEM'});
+  L.push({timestamp:tsx(23,9,31,12),event_id:10,image:'C:\\Program Files\\Windows Defender\\MsMpEng.exe',target_filename:'C:\\Windows\\System32\\lsass.exe',granted_access:'0x1000',user:'NT AUTHORITY\\SYSTEM'});
+  L.push({timestamp:tsx(23,10,2,44),event_id:10,image:'C:\\Windows\\System32\\services.exe',target_filename:'C:\\Windows\\System32\\winlogon.exe',granted_access:'0x0800',user:'NT AUTHORITY\\SYSTEM'});
+  L.push({timestamp:tsx(23,11,47,3),event_id:10,image:'C:\\Windows\\System32\\csrss.exe',target_filename:'C:\\Windows\\System32\\csrss.exe',granted_access:'0x0040',user:'NT AUTHORITY\\SYSTEM'});
+  L.push({timestamp:'2024-11-23 13:02:11',event_id:10,image:'C:\\Users\\Public\\svchost_update.exe',target_filename:'C:\\Windows\\System32\\lsass.exe',granted_access:'0x1010',user:'WKS22\\jdoe'});
+  L.push({timestamp:'2024-11-23 13:03:41',event_id:10,image:'C:\\ProgramData\\upd\\updx64.exe',target_filename:'C:\\Windows\\System32\\lsass.exe',granted_access:'0x1400',user:'WKS22\\jdoe'});
+  L.sort((a,b)=>a.timestamp<b.timestamp?-1:1);
+  DATA.sysmon_logs=L;
+})();
+
+/* ---- CASE 9 : package_logs + audit_logs ---------------------- */
+(function(){ const r = mulberry32(909);
+  const pkgs=[['requests','2.31.0'],['numpy','1.26.4'],['flask','3.0.3'],['pytest','8.2.1'],['pyyaml','6.0.1'],['cryptography','43.0.1'],['boto3','1.34.145'],['rich','13.7.1'],['uvicorn','0.30.3'],['pandas','2.2.2'],['jinja2','3.1.4'],['certifi','2024.7.4'],['idna','3.7']];
+  const P=pkgs.map((p,i)=>({build_id:`BLD-${7700+i}`,agent:`build-runner-0${ir(r,1,4)}`,pkg_name:p[0],pkg_version:p[1],registry:'https://npm.company.internal',source_ip:'10.30.2.15',install_time:tsx(18,ir(r,9,16),ir(r,0,59),ir(r,0,59))}));
+  P.push({build_id:'BLD-7841',agent:'build-runner-03',pkg_name:'jwt-decode-plus',pkg_version:'9.9.9',registry:'http://npm-mirror.net',source_ip:'45.148.10.9',install_time:'2024-11-18 03:12:44'});
+  P.sort((a,b)=>a.install_time<b.install_time?-1:1);
+  DATA.package_logs=P;
+  const evs=[['ListBuckets','infra-admin'],['GetObject','data-sci-01'],['DescribeInstances','netops'],['PutObject','etl-runner'],['AssumeRole','ci-deploy-svc'],['UpdatePolicy','sec-arch'],['GetCallerIdentity','auditor'],['ListUsers','iam-readonly'],['CreateLogGroup','obs-agent'],['StartInstances','netops'],['DownloadDBLog','dba-01'],['GetSecretValue','vault-sync']];
+  const A=evs.map((e,i)=>({event_time:tsx(18,ir(r,8,17),ir(r,0,59),ir(r,0,59)),event_name:e[0],user_identity:e[1],source_ip:`10.30.${ir(r,1,9)}.${ir(r,2,250)}`,details:'-'}));
+  A.push({event_time:'2024-11-18 13:55:10',event_name:'CreateAccessKey',user_identity:'warehouse-etl',source_ip:'10.10.8.4',details:'key=AKIA4ETL9WX2 routine rotation'});
+  A.push({event_time:'2024-11-18 03:47:55',event_name:'CreateAccessKey',user_identity:'legacy-reporting',source_ip:'45.148.10.9',details:'key=AKIA7QZ3 legacy refresh (stale session)'});
+  A.push({event_time:'2024-11-18 03:16:02',event_name:'CreateAccessKey',user_identity:'ci-deploy-svc',source_ip:'45.148.10.9',details:'key=AKIAXDEAD9BEEF42 minted from build egress IP'});
+  A.sort((a,b)=>a.event_time<b.event_time?-1:1);
+  DATA.audit_logs=A;
+})();
+
+/* ---- CASE 10 : apt_campaign_logs ----------------------------- */
+(function(){ const r = mulberry32(1010); const T=(h,m,s)=>tsx(24,h,m,s); const L=[];
+  const hosts=['WS-07','WS-09','WS-14','WS-21','WS-30']; const us=['b.wong','c.ramos','s.ali','t.brooks','n.iva'];
+  const noise=[
+    ['endpoint','proc_create','chrome.exe started by EXPLORER.EXE'],
+    ['endpoint','proc_create','WINWORD.EXE started by EXPLORER.EXE (meeting-notes.docx)'],
+    ['endpoint','file_write','C:\\Users\\Public\\Downloads\\manual.pdf written'],
+    ['registry','reg_set','HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\OneDrive = C:\\Program Files\\OneDrive\\OneDrive.exe'],
+    ['registry','reg_set','HKLM\\SOFTWARE\\Acme\\Version updated to 4.1'],
+    ['system','service_install','Windows Update Medic Service state changed'],
+    ['system','priv_assign','SeBackupPrivilege assigned to backup.service (scheduled job)'],
+    ['network','conn','HTTPS 443 session to cdn.vendor.io (2,140 bytes)'],
+    ['network','conn','SMB signing audit sweep on WS pool (policy check)'],
+    ['network','conn','LDAP 389/tcp query burst to dc01.corp.local'],
+    ['network','conn','1879048192 bytes transferred to 10.10.9.9:445 (nightly backup job)'],
+    ['endpoint','proc_create','EXCEL.EXE started by EXPLORER.EXE (report.xlsx)'],
+    ['system','log_clear','Application log auto-archived per retention policy'],
+    ['network','conn','DNS AAAA lookup storm resolver cache refresh'] ];
+  const used=new Set();
+  for(let i=0;i<26;i++){ const n=pick(r,noise);
+    let uid; do{ uid=`APT-2${pad(ir(r,101,899))}`; }while(used.has(uid)); used.add(uid);
+    L.push({event_uid:uid,timestamp:T(ir(r,8,10),ir(r,0,59),ir(r,0,59)),category:n[0],host:pick(r,hosts),user:pick(r,us),action:n[1],detail:n[2]}); }
+  const six=[
+    ['APT-1042',T(9,3,12),'endpoint','WS-14','c.ramos','proc_spawn','OUTLOOK.EXE spawned WINWORD.EXE — attachment Q4_Invoice.docm (macro-enabled)'],
+    ['APT-1087',T(9,5,41),'registry','WS-14','c.ramos','reg_set','HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\UpdaterSvc = C:\\Users\\c.ramos\\AppData\\Roaming\\upd.exe'],
+    ['APT-1102',T(9,7,23),'system','WS-14','c.ramos','priv_assign','Special privileges assigned to new logon: SeDebugPrivilege'],
+    ['APT-1153',T(9,12,8),'network','WS-14','c.ramos','smb_sweep','445/tcp session burst — 38 internal hosts contacted within 12s'],
+    ['APT-1176',T(9,19,37),'endpoint','WS-14','c.ramos','archive_create','7z.exe a -p C:\\ProgramData\\cache.dat C:\\Shares\\Finance\\*.xlsx'],
+    ['APT-1199',T(9,24,15),'network','WS-14','c.ramos','egress','2148913664 bytes transferred to 198.51.100.44:8443 (TLS, JA3 mismatch)'] ];
+  six.forEach(s=>L.push({event_uid:s[0],timestamp:s[1],category:s[2],host:s[3],user:s[4],action:s[5],detail:s[6]}));
+  L.sort((a,b)=>a.timestamp<b.timestamp?-1:1);
+  DATA.apt_campaign_logs=L;
+})();
+
+/* ================================================================
+   1. CASE DOSSIERS
+================================================================ */
+const CASES=[
+{ id:1, tier:'NOVICE', skill:'LIST COMPREHENSIONS', title:'High-Frequency Authentication Audit',
+  brief:`Perimeter SSH/RDP telemetry shows an unusual noisy morning. The auth collector buffered every attempt into one array. Somewhere in the noise, a single source is hammering the directory far beyond normal user error.`,
+  objective:`Filter the array down to status == 'FAILED' events and isolate any source IP generating over 30 failed logins.`,
+  submit:'SUBMIT: source IP exceeding the 30-failure threshold',
+  datasets:[{name:'auth_logs',kind:'table',schema:[['timestamp','str','UTC event time, %Y-%m-%d %H:%M:%S'],['src_ip','str','originating host'],['username','str','target account'],['status','str','SUCCESS or FAILED'],['port','int','destination service port']]}],
+  fields:[{k:'ip',label:'OFFENDING SRC_IP',ph:'e.g. 203.0.113.x',mode:'plain',ans:'203.0.113.77'}],
+  hints:[
+    `Slice first, think second: build a subset keeping only dicts whose 'status' equals 'FAILED'. A list comprehension gives you the working surface.`,
+    `Tally the subset with collections.Counter keyed on 'src_ip', then rank with .most_common().`,
+    `The threshold is n > 30. A decoy from 198.51.100.0/24 sits at 12 failures. The offender is the external TEST-NET-3 hammering 'admin' — submit its src_ip.` ],
+  debrief:`DETECTION ENGINEERING: threshold-tally on (src_ip) over a sliding window is the canonical brute-force rule (Sigma: selection_status=FAILED | count(src_ip) > 30). Your gap: no MFA lockout artifact preceded it — escalate to enforce rate-limiting on edge auth.`,
+  starter:`# CASE 01 :: HIGH-FREQUENCY AUTH AUDIT
+# dataset: auth_logs -> list[dict]  (timestamp, src_ip, username, status, port)
+from collections import Counter
+
+print('[*] rows:', len(auth_logs))
+print('[*] sample:', auth_logs[0])
+
+# 1) isolate failures
+fails = [r for r in auth_logs if r['status'] == 'FAILED']
+print('[*] failed rows:', len(fails))
+
+# 2) tally per source ip and find count > 30
+tally = Counter(r['src_ip'] for r in fails)
+top = [(ip, n) for ip, n in tally.most_common() if n > 30]
+top`,
+  solution:
+`from collections import Counter
+fails = [r for r in auth_logs if r['status'] == 'FAILED']
+tally = Counter(r['src_ip'] for r in fails)
+[(ip, n) for ip, n in tally.most_common() if n > 30]
+# -> [('203.0.113.77', 42)]` },
+
+{ id:2, tier:'NOVICE', skill:'STRING FILTERING + BYTES AGGREGATION', title:'Anomalous URI Query Slicing',
+  brief:`The WAF mirrored overnight traffic to the proxy collector. Most requests are boring. A cluster of requests between 02:11–02:37 carry encoded payloads in their query strings — and the response bodies are suspiciously large. Quantify the bleed.`,
+  objective:`Identify requests carrying encoded payload patterns in the query string (percent-encoding artifacts), then aggregate the total bytes_sent from the hostile client.`,
+  submit:'SUBMIT: hostile client IP / total bytes sent (integer)',
+  datasets:[{name:'web_access_logs',kind:'table',schema:[['timestamp','str','UTC event time'],['client_ip','str','requesting host'],['method','str','HTTP verb'],['uri','str','raw request path + query'],['status_code','int','HTTP response code'],['bytes_sent','int','response body size, bytes']]}],
+  fields:[{k:'ip',label:'HOSTILE CLIENT_IP',ph:'e.g. 198.51.100.x',mode:'plain',ans:'198.51.100.23'},
+          {k:'bytes',label:'TOTAL BYTES_SENT',ph:'integer, no separators',mode:'digits',ans:'116990'}],
+  hints:[
+    `Smuggled payloads leave '%' fingerprints all over the 'uri' field. Start with a comprehension testing membership of '%' in each uri.`,
+    `Watch for double-encoding (%25), hex-escaped ASCII (\\u0027 = quote), traversal (..%2f) and inline SQL keywords. They all funnel through percent signs.`,
+    `Exactly 6 flagged requests, all external, all status 200. Sum 'bytes_sent' across your flagged subset with sum() over a generator.` ],
+  debrief:`DETECTION ENGINEERING: uri-decode-before-inspect is rule zero for proxy analytics (decode twice, then match). The 116,990 byte aggregate against 6 requests is classic low-and-slow staging egress — alert on bytes_sent z-score per client_ip, not just signatures.`,
+  starter:`# CASE 02 :: ANOMALOUS URI QUERY SLICING
+# dataset: web_access_logs -> list[dict]
+# fields: timestamp, client_ip, method, uri, status_code, bytes_sent
+
+flagged = [r for r in web_access_logs if '%' in r['uri']]
+print('[*] flagged rows:', len(flagged))
+
+for r in flagged:
+    print(r['timestamp'], r['client_ip'], r['uri'][:60], r['bytes_sent'])
+
+# total exfil bytes per hostile client
+total = sum(r['bytes_sent'] for r in flagged)
+total`,
+  solution:
+`flagged = [r for r in web_access_logs if '%' in r['uri']]
+ips = {r['client_ip'] for r in flagged}
+total = sum(r['bytes_sent'] for r in flagged)
+ips, total
+# -> ({'198.51.100.23'}, 116990)` },
+
+{ id:3, tier:'NOVICE', skill:'SETS + IOC CROSS-REFERENCING', title:'Threat Intelligence Hash Verification',
+  brief:`A midnight TI feed dropped five confirmed-malicious SHA-256 indicators into the SOC bus. EDR execution telemetry for the fleet is loaded. Cross-reference every executed binary hash against the feed and name the compromised endpoints.`,
+  objective:`Cross-reference endpoint_logs against the malicious_hashes set and extract the hostnames that executed flagged binaries.`,
+  submit:'SUBMIT: all compromised hostnames, comma-separated',
+  datasets:[
+    {name:'endpoint_logs',kind:'table',schema:[['hostname','str','endpoint identifier WS-XX'],['user','str','session account'],['filepath','str','executed binary path'],['sha256_hash','str','binary digest, hex']]},
+    {name:'malicious_hashes',kind:'set',schema:[['value','str','SHA-256 IOC from TI feed']]}],
+  fields:[{k:'hosts',label:'COMPROMISED HOSTNAMES',ph:'WS-XX, WS-XX, ...',mode:'list',ans:'WS-04,WS-07,WS-11'}],
+  hints:[
+    `malicious_hashes is a python set — membership tests are O(1): 'hash' in malicious_hashes.`,
+    `One comprehension produces every hit: keep rows where r['sha256_hash'] is in the IOC set.`,
+    `Stage the hostnames into a set to deduplicate. Three endpoints lit up, all executing droppers under C:\\Users\\Public or C:\\ProgramData.` ],
+  debrief:`DETECTION ENGINEERING: hash-set intersection is the heartbeat of IOC sweeping. Note every hit ran from world-writable staging dirs — pair hash intel with path heuristics (Public/ProgramData execution = high-fidelity alert) to cut false positives.`,
+  starter:`# CASE 03 :: TI HASH VERIFICATION
+# datasets: endpoint_logs -> list[dict] | malicious_hashes -> set(str)
+
+print('[*] executions:', len(endpoint_logs))
+print('[*] IOC count :', len(malicious_hashes))
+
+hits = [r for r in endpoint_logs if r['sha256_hash'] in malicious_hashes]
+for r in hits:
+    print(r['hostname'], r['user'], r['filepath'])
+
+sorted({r['hostname'] for r in hits})`,
+  solution:
+`hits = [r for r in endpoint_logs if r['sha256_hash'] in malicious_hashes]
+sorted({r['hostname'] for r in hits})
+# -> ['WS-04', 'WS-07', 'WS-11']` },
+
+{ id:4, tier:'OPERATOR', skill:'DATETIME ARITHMETIC + INTERVAL DELTA', title:'Periodic Outbound Flow Analysis',
+  brief:`Egress NetFlow from the firewall shows a whisper-quiet pattern after 22:00. Beacon implants phone home on metronome intervals. Find the machine breathing in lockstep with an external drop site.`,
+  objective:`Parse timestamps with datetime.strptime, compute deltas between consecutive same-pair connections, and isolate the flow pair holding a regular ~60s (±2s) heartbeat.`,
+  submit:'SUBMIT: beacon source IP / beacon destination IP',
+  datasets:[{name:'firewall_flows',kind:'table',schema:[['timestamp','str','UTC flow time'],['src_ip','str','internal origin'],['dst_ip','str','remote endpoint'],['dst_port','int','destination port'],['bytes','int','flow payload size']]}],
+  fields:[{k:'src',label:'BEACON SRC_IP',ph:'10.x.x.x',mode:'plain',ans:'10.20.30.55'},
+          {k:'dst',label:'BEACON DST_IP',ph:'e.g. 203.0.113.x',mode:'plain',ans:'203.0.113.200'}],
+  hints:[
+    `Group first: defaultdict(list) keyed on (src_ip, dst_ip), then sort each bucket by timestamp string (ISO sorts lexicographically).`,
+    `datetime.strptime(ts, '%Y-%m-%d %H:%M:%S') gives you arithmetic objects. zip(ts, ts[1:]) pairs consecutive entries; (b-a).total_seconds() yields deltas.`,
+    `You want 5+ deltas all inside 58–62 seconds. The 300-second DNS decoy to the internal resolver is noise. The tell: dst_port 4444.` ],
+  debrief:`DETECTION ENGINEERING: beacon hunting = periodicity scoring. Production SOCs use FFT/jitter-variance per flow pair; your (58<=d<=62) band-pass is the manual ancestor. The uniform 280–420 byte payloads (no variance) corroborate automated callback, not human browsing.`,
+  starter:`# CASE 04 :: PERIODIC OUTBOUND FLOW ANALYSIS
+# dataset: firewall_flows -> list[dict]
+from datetime import datetime
+from collections import defaultdict
+
+FMT = '%Y-%m-%d %H:%M:%S'
+flows = sorted(firewall_flows, key=lambda r: r['timestamp'])
+
+pairs = defaultdict(list)
+for r in flows:
+    pairs[(r['src_ip'], r['dst_ip'])].append(datetime.strptime(r['timestamp'], FMT))
+
+for k, ts in pairs.items():
+    if len(ts) >= 5:
+        deltas = [(b - a).total_seconds() for a, b in zip(ts, ts[1:])]
+        if all(58 <= d <= 62 for d in deltas):
+            print('[!] beacon pattern:', k, 'count:', len(ts), 'deltas:', deltas[:6])`,
+  solution:
+`from datetime import datetime
+from collections import defaultdict
+FMT = '%Y-%m-%d %H:%M:%S'
+pairs = defaultdict(list)
+for r in sorted(firewall_flows, key=lambda r: r['timestamp']):
+    pairs[(r['src_ip'], r['dst_ip'])].append(datetime.strptime(r['timestamp'], FMT))
+hits = [k for k, ts in pairs.items() if len(ts) >= 5 and all(58 <= (b-a).total_seconds() <= 62 for a, b in zip(ts, ts[1:]))]
+hits
+# -> [('10.20.30.55', '203.0.113.200')]` },
+
+{ id:5, tier:'OPERATOR', skill:'AGGREGATION W/ collections.defaultdict', title:'Distributed Account Access Anomalies',
+  brief:`Domain controllers forwarded a day of Kerberos/NTLM audit events. One identity is touching an impossible number of machines in a short span — either a broken automation or credential theft in motion.`,
+  objective:`Using collections.defaultdict, detect any single account touching over 5 distinct workstations within any 30-minute window.`,
+  submit:'SUBMIT: offending user_id',
+  datasets:[{name:'ad_logs',kind:'table',schema:[['timestamp','str','UTC event time'],['user_id','str','account principal'],['workstation_id','str','target host WS-XXX'],['event_id','int','4624 success / 4625 failure'],['auth_status','str','SUCCESS or FAILURE']]}],
+  fields:[{k:'user',label:'OFFENDING USER_ID',ph:'account name',mode:'lc',ans:'svc_deploy'}],
+  hints:[
+    `defaultdict(list) keyed on 'user_id' corrals each account's events; sort each bucket by timestamp.`,
+    `Slide a window: from every index i, walk forward while the delta stays within timedelta(minutes=30), collecting workstation_id into a set.`,
+    `Flag len(set) > 5. The decoy admin.emergency spans 4 boxes over 41 minutes — both tests must trip together. Nine forty-one in the morning.` ],
+  debrief:`DETECTION ENGINEERING: this is the classic bloodhound-for-blue-team rule — distinct-target fan-out per principal per window. Service accounts make lateral movement noisy: 7 unique hosts in 18 minutes with leading 4625 failures is password-spray-then-pivot behavior.`,
+  starter:`# CASE 05 :: DISTRIBUTED ACCOUNT ACCESS ANOMALIES
+# dataset: ad_logs -> list[dict]
+from collections import defaultdict
+from datetime import datetime, timedelta
+
+FMT = '%Y-%m-%d %H:%M:%S'
+by_user = defaultdict(list)
+for r in ad_logs:
+    by_user[r['user_id']].append(r)
+
+for u, rows in by_user.items():
+    rows.sort(key=lambda r: r['timestamp'])
+    for i in range(len(rows)):
+        t0 = datetime.strptime(rows[i]['timestamp'], FMT)
+        ws = set()
+        for r in rows[i:]:
+            if datetime.strptime(r['timestamp'], FMT) - t0 <= timedelta(minutes=30):
+                ws.add(r['workstation_id'])
+            else:
+                break
+        if len(ws) > 5:
+            print('[!] anomaly:', u, '->', len(ws), 'distinct workstations in 30m')
+            break`,
+  solution:
+`from collections import defaultdict
+from datetime import datetime, timedelta
+FMT = '%Y-%m-%d %H:%M:%S'
+by_user = defaultdict(list)
+for r in ad_logs: by_user[r['user_id']].append(r)
+for u, rows in by_user.items():
+    rows.sort(key=lambda r: r['timestamp'])
+    for i in range(len(rows)):
+        t0 = datetime.strptime(rows[i]['timestamp'], FMT)
+        ws = {r['workstation_id'] for r in rows[i:] if datetime.strptime(r['timestamp'], FMT) - t0 <= timedelta(minutes=30)}
+        if len(ws) > 5: print(u, len(ws)); break
+# -> svc_deploy 7` },
+
+{ id:6, tier:'OPERATOR', skill:'REGEX + ENTROPY + BASE64', title:'High-Entropy Subdomain Extraction',
+  brief:`DNS resolver logs captured bizarrely long labels hitting an unregistered-lookalike domain at 03:33. Tunneling implants chunk stolen data into subdomain labels. Reassemble what left the network.`,
+  objective:`Use the re module to identify long encoded subdomain labels querying sync-metrics.net, order them chronologically, join, and base64-decode the embedded telemetry payload.`,
+  submit:'SUBMIT: tunneling client IP / decoded payload string (exact)',
+  datasets:[{name:'dns_logs',kind:'table',schema:[['timestamp','str','UTC query time'],['client_ip','str','resolver client'],['query_domain','str','queried FQDN'],['record_type','str','A / TXT / MX...']]}],
+  fields:[{k:'ip',label:'TUNNELING CLIENT_IP',ph:'10.x.x.x',mode:'plain',ans:'10.20.31.88'},
+          {k:'payload',label:'DECODED PAYLOAD',ph:'exact decoded string',mode:'plain',ans:'ACCT=backup_admin;TOKEN=f9a2c77;HOST=WS-04'}],
+  hints:[
+    `Long random-looking labels are the signature. Regex r'^([A-Za-z0-9+/]{14,})\\.sync-metrics\\.net$' against query_domain isolates the chunks.`,
+    `Sort matching rows by 'timestamp' BEFORE joining labels — chunk order is the message.`,
+    `base64.b64decode(''.join(chunks)).decode() hands you the implant's note. The client lives in 10.20.31.0/24 and prefers TXT records at oh-dark-thirty.` ],
+  debrief:`DETECTION ENGINEERING: DNS tunneling detection = label-length z-score + character entropy + record-type anomaly (TXT at 03:33 from a workstation). You just rebuilt the triage manually with re + base64. Block sync-metrics.net and hunt the implant on 10.20.31.88.`,
+  starter:`# CASE 06 :: HIGH-ENTROPY SUBDOMAIN EXTRACTION
+# dataset: dns_logs -> list[dict]
+import re, base64
+
+pat = re.compile(r'^([A-Za-z0-9+/]{14,})\\.sync-metrics\\.net$')
+rows = sorted(dns_logs, key=lambda r: r['timestamp'])
+
+chunks = []
+for r in rows:
+    m = pat.match(r['query_domain'])
+    if m:
+        chunks.append(m.group(1))
+        print('[+] chunk', len(chunks), 'from', r['client_ip'], '->', m.group(1))
+
+raw = ''.join(chunks)
+print('[*] b64 len:', len(raw))
+base64.b64decode(raw).decode()`,
+  solution:
+`import re, base64
+pat = re.compile(r'^([A-Za-z0-9+/]{14,})\\.sync-metrics\\.net$')
+chunks = [m.group(1) for r in sorted(dns_logs, key=lambda r: r['timestamp'])
+          if (m := pat.match(r['query_domain']))]
+base64.b64decode(''.join(chunks)).decode()
+# -> 'ACCT=backup_admin;TOKEN=f9a2c77;HOST=WS-04'` },
+
+{ id:7, tier:'ADVANCED', skill:'RECURSIVE TREE TRAVERSAL', title:'Process Hierarchy Reconstruction',
+  brief:`Host telemetry captured a full process table snapshot. A weaponized invoice executed somewhere in the tree — and minutes later, shadow copies were wiped. Reconstruct the exact execution lineage from document to destruction.`,
+  objective:`Trace the execution chain from the malicious document process down to the shadow-copy deletion, returning the complete ordered PID array.`,
+  submit:'SUBMIT: full PID chain root-to-leaf (comma or arrow separated)',
+  datasets:[{name:'process_logs',kind:'table',schema:[['process_id','int','child PID'],['parent_process_id','int','ppid'],['process_name','str','image name'],['cmdline','str','full command line'],['timestamp','str','start time']]}],
+  fields:[{k:'chain',label:'PID CHAIN',ph:'4100, 4112, ...',mode:'digits',ans:'4100,4112,4130,4155'}],
+  hints:[
+    `Build a child map: dict mapping parent_process_id -> list of child rows.`,
+    `The chain opens at WINWORD.EXE spawned by OUTLOOK.EXE (pid 4100) — the decoy WINWORD (4210) came from explorer and spawned nothing.`,
+    `Recurse depth-first appending process_id at each hop. The chain terminates where cmdline whispers 'Delete Shadows'. Four PIDs.` ],
+  debrief:`DETECTION ENGINEERING: office-doc -> script-interpreter -> cmd -> vssadmin is the ransomware canary chain. Alert on grandparent=office AND descendant_cmdline contains 'shadow'. Recovery-point destruction is the point of no return — that vssadmin PID is your blast-radius timestamp.`,
+  starter:`# CASE 07 :: PROCESS HIERARCHY RECONSTRUCTION
+# dataset: process_logs -> list[dict]
+
+kids = {}
+for p in process_logs:
+    kids.setdefault(p['parent_process_id'], []).append(p)
+
+chain = []
+def trace(pid):
+    chain.append(pid)
+    for c in kids.get(pid, []):
+        print('   ' * len(chain), c['process_id'], c['process_name'])
+        trace(c['process_id'])
+
+trace(4100)  # the invoice-born WINWORD
+chain`,
+  solution:
+`kids = {}
+for p in process_logs:
+    kids.setdefault(p['parent_process_id'], []).append(p)
+chain = []
+def trace(pid):
+    chain.append(pid)
+    for c in kids.get(pid, []):
+        trace(c['process_id'])
+trace(4100)
+chain
+# -> [4100, 4112, 4130, 4155]` },
+
+{ id:8, tier:'ADVANCED', skill:'SYSMON EID-10 FILTERING', title:'Sensitive Memory Handle Access Audit',
+  brief:`Sysmon ProcessAccess (EID 10) events streamed in overnight. Something opened credential-memory handles to a core system process with read rights. Legitimate services do this constantly — separate the wolves from the watchdogs.`,
+  objective:`Filter Event ID 10 handle operations targeting core system processes where granted_access carries memory-read flags (0x1010 / 0x1400). Identify the operator and the rogue images.`,
+  submit:'SUBMIT: operator user / rogue image paths (comma-separated)',
+  datasets:[{name:'sysmon_logs',kind:'table',schema:[['event_id','int','Sysmon event code'],['image','str','requesting process'],['target_filename','str','access target'],['granted_access','str','hex access mask'],['user','str','security context'],['timestamp','str','UTC']]}],
+  fields:[{k:'user',label:'OPERATOR USER',ph:'HOST\\\\account',mode:'lc',ans:'wks22\\jdoe'},
+          {k:'images',label:'ROGUE IMAGES',ph:'comma-separated paths',mode:'list',ans:'C:\\Users\\Public\\svchost_update.exe,C:\\ProgramData\\upd\\updx64.exe'}],
+  hints:[
+    `First gate: event_id == 10. Second gate: granted_access in ('0x1010', '0x1400').`,
+    `Third gate: target_filename under C:\\Windows\\System32 — the crown jewels live there (lsass.exe is the vault).`,
+    `System32 svchost and Defender's MsMpEng touch lsass with 0x1000 — query-limited, not read. They legitimately survive gate 1+3 but die at gate 2. Two loaders remain, one operator.` ],
+  debrief:`DETECTION ENGINEERING: EID-10 with GrantedAccess 0x1010/0x1400 against lsass.exe is the canonical credential-dumping signal (mimikatz-class). Path is your verdict: signed System32 requesters trip volume, Public/ProgramData loaders trip handcuffs. Escalate WKS22 for memory-acquisition forensics.`,
+  starter:`# CASE 08 :: SENSITIVE MEMORY HANDLE ACCESS
+# dataset: sysmon_logs -> list[dict]
+# flags of interest: '0x1010' (QUERY_LIMITED|READ) / '0x1400' (QUERY_INFO|READ)
+
+hits = [r for r in sysmon_logs
+        if r['event_id'] == 10
+        and r['granted_access'] in ('0x1010', '0x1400')
+        and 'System32' in r['target_filename']]
+
+for r in hits:
+    print(r['timestamp'], r['user'])
+    print('   ', r['image'], '->', r['target_filename'], r['granted_access'])
+
+hits`,
+  solution:
+`hits = [r for r in sysmon_logs if r['event_id'] == 10
+        and r['granted_access'] in ('0x1010', '0x1400')
+        and 'C:\\\\Windows\\\\System32' in r['target_filename']]
+images = sorted({r['image'] for r in hits})
+users = sorted({r['user'] for r in hits})
+users, images
+# -> (['WKS22\\jdoe'], ['C:\\ProgramData\\upd\\updx64.exe', 'C:\\Users\\Public\\svchost_update.exe'])` },
+
+{ id:9, tier:'ADVANCED', skill:'MULTI-DATASET JOINS', title:'CI/CD Dependency & IAM Audit',
+  brief:`The build farm reported a dependency pulled from a mirror nobody approved. Minutes later, the cloud audit trail shows fresh credentials minted. Join the two telemetry planes and prove the dependency-confusion pivot.`,
+  objective:`Join package_logs with audit_logs: match an unauthorized registry install to a subsequent cloud access-key creation from the SAME source IP occurring within 5 minutes.`,
+  submit:'SUBMIT: poisoned package name / IAM principal that received the key',
+  datasets:[
+    {name:'package_logs',kind:'table',schema:[['build_id','str','pipeline run'],['agent','str','build runner'],['pkg_name','str','dependency'],['pkg_version','str','semver'],['registry','str','origin registry URL'],['source_ip','str','egress NAT IP'],['install_time','str','UTC']]},
+    {name:'audit_logs',kind:'table',schema:[['event_time','str','UTC'],['event_name','str','cloud API call'],['user_identity','str','IAM principal'],['source_ip','str','caller IP'],['details','str','event metadata']]}],
+  fields:[{k:'pkg',label:'POISONED PACKAGE',ph:'package name',mode:'lc',ans:'jwt-decode-plus'},
+          {k:'iam',label:'IAM PRINCIPAL',ph:'service account',mode:'lc',ans:'ci-deploy-svc'}],
+  hints:[
+    `Flag package rows whose registry is not the approved internal mirror. One row fails — check the source_ip it egressed from.`,
+    `Join key: source_ip. Scan audit_logs for event_name == 'CreateAccessKey' sharing that IP.`,
+    `Enforce the window: 0 <= (event_time - install_time).total_seconds() <= 300. A second key minted 35 minutes later from the same IP exists — it fails the window and belongs to a stale session. The 5-minute hit rides ci-deploy-svc.` ],
+  debrief:`DETECTION ENGINEERING: cross-plane correlation (build egress IP == control-plane caller IP, Δt <= 300s) is how dependency-confusion pivots get caught. The attacker's mistake: reusing the NAT IP. Enforce registry allowlists and alert on key minting outside CI change windows.`,
+  starter:`# CASE 09 :: CI/CD DEPENDENCY & IAM AUDIT
+# datasets: package_logs, audit_logs -> list[dict]
+from datetime import datetime
+FMT = '%Y-%m-%d %H:%M:%S'
+
+bad = [p for p in package_logs if 'company.internal' not in p['registry']]
+print('[*] unauthorized installs:', len(bad))
+
+for p in bad:
+    t0 = datetime.strptime(p['install_time'], FMT)
+    print('[!] rogue pkg:', p['pkg_name'], p['source_ip'], p['install_time'])
+    for a in audit_logs:
+        if a['event_name'] == 'CreateAccessKey' and a['source_ip'] == p['source_ip']:
+            dt = (datetime.strptime(a['event_time'], FMT) - t0).total_seconds()
+            if 0 <= dt <= 300:
+                print('    [HIT]', a['user_identity'], 'delta_s =', dt)`,
+  solution:
+`from datetime import datetime
+FMT = '%Y-%m-%d %H:%M:%S'
+bad = [p for p in package_logs if 'company.internal' not in p['registry']]
+for p in bad:
+    t0 = datetime.strptime(p['install_time'], FMT)
+    for a in audit_logs:
+        if a['event_name'] == 'CreateAccessKey' and a['source_ip'] == p['source_ip'] \\
+           and 0 <= (datetime.strptime(a['event_time'], FMT) - t0).total_seconds() <= 300:
+            print(p['pkg_name'], '->', a['user_identity'])
+# -> jwt-decode-plus -> ci-deploy-svc` },
+
+{ id:10, tier:'CRITICAL', skill:'MULTI-STAGE STATE MACHINE', title:'Enterprise Attack Chain Timeline Synthesis',
+  brief:`A unified SIEM export mixes network, endpoint, registry, and system events from a chaotic Tuesday. Buried in the churn is a complete six-move intrusion. Isolate each stage and order it — command wants the kill chain on one line.`,
+  objective:`Synthesize a chronological 6-stage timeline: initial access -> persistence key -> privilege elevation -> internal scanning -> staging -> egress. Submit the six event UIDs in order.`,
+  submit:'SUBMIT: six event UIDs, chronological, comma-separated',
+  datasets:[{name:'apt_campaign_logs',kind:'table',schema:[['event_uid','str','unique event id'],['timestamp','str','UTC'],['category','str','network/endpoint/registry/system'],['host','str','origin host'],['user','str','principal'],['action','str','event verb'],['detail','str','full description']]}],
+  fields:[{k:'uids',label:'KILL-CHAIN UIDs (ORDERED)',ph:'APT-XXXX, APT-XXXX, ...',mode:'seq',ans:'APT-1042,APT-1087,APT-1102,APT-1153,APT-1176,APT-1199'}],
+  hints:[
+    `Sort apt_campaign_logs by timestamp and eyeball the WS-14 / c.ramos thread — one host and one user carry the whole operation.`,
+    `Model a state machine: [delivery, registry Run key, debug privilege, SMB sweep, archive creation, TLS egress]. One event per slot.`,
+    `Marker strings: 'spawned WINWORD.EXE', 'UpdaterSvc', 'SeDebugPrivilege', '445/tcp', '7z.exe', ':8443'. Decoys share verbs but not markers (OneDrive Run key, SeBackupPrivilege, NAS backup to :445). Six UIDs, ascending, all WS-14.` ],
+  debrief:`DETECTION ENGINEERING: single-event alerts fatigue; chained corroboration convicts. Your 09:03:12 -> 09:24:15 timeline (21 minutes, dwell-to-egress) is now an executive-grade incident story and a pre-built retro-hunt query. Every stage marker doubles as a standalone detection rule.`,
+  starter:`# CASE 10 :: ATTACK CHAIN TIMELINE SYNTHESIS
+# dataset: apt_campaign_logs -> list[dict]
+
+MARKERS = ['spawned WINWORD.EXE', 'UpdaterSvc', 'SeDebugPrivilege',
+           '445/tcp', '7z.exe', ':8443']
+
+rows = sorted(apt_campaign_logs, key=lambda r: r['timestamp'])
+chain = []
+for stage in MARKERS:
+    for r in rows:
+        if stage in r['detail'] and r['host'] == 'WS-14':
+            chain.append(r)
+            print(r['event_uid'], r['timestamp'], r['category'].upper().ljust(9), '::', r['detail'][:70])
+            break
+
+[r['event_uid'] for r in chain]`,
+  solution:
+`MARKERS = ['spawned WINWORD.EXE', 'UpdaterSvc', 'SeDebugPrivilege',
+           '445/tcp', '7z.exe', ':8443']
+rows = sorted(apt_campaign_logs, key=lambda r: r['timestamp'])
+chain = []
+for stage in MARKERS:
+    hit = next(r for r in rows if stage in r['detail'] and r['host'] == 'WS-14' and r['user'] == 'c.ramos')
+    chain.append(hit['event_uid'])
+chain
+# -> ['APT-1042', 'APT-1087', 'APT-1102', 'APT-1153', 'APT-1176', 'APT-1199']` }
+];
+
+/* ================================================================
+   2. PERSISTENT STATE
+================================================================ */
+const LS='socli_v1';
+let state={solved:[],hints:{},notes:{},code:{},history:[],active:1,attempts:{}};
+try{ const s=JSON.parse(localStorage.getItem(LS)); if(s&&typeof s==='object') state=Object.assign(state,s); }catch(e){}
+let saveT=null;
+function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{localStorage.setItem(LS,JSON.stringify(state));}catch(e){} },250); }
+const cur=()=>CASES.find(c=>c.id===state.active);
+
+/* ================================================================
+   3. TERMINAL API
+================================================================ */
+const term=document.getElementById('term');
+const transcript=[];
+function tline(txt, cls, tag){
+  term.querySelectorAll('.caretline').forEach(n=>n.remove());
+  const d=document.createElement('div'); d.className='term-line fadeup';
+  const tagHtml = tag?`<span class="${cls} font-bold">${tag}</span> `:'';
+  d.innerHTML = tagHtml + `<span class="${cls.replace(/font-bold/g,'')}">${txt}</span>`;
+  term.appendChild(d);
+  while(term.children.length>400) term.removeChild(term.firstChild);
+  term.scrollTop=term.scrollHeight;
+  transcript.push(`[${new Date().toISOString()}] ${tag||''} ${String(txt).replace(/<[^>]+>/g,'')}`);
+}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const sysL =m=>tline(esc(m),'text-[#ffb000]/90','[SYS]');
+const outL =m=>tline(esc(m),'text-slate-300','');
+const resL =m=>tline(esc(m),'text-[#00f3ff] glow-c','[RES]');
+const errL =m=>tline(esc(m),'text-[#ff3366] glow-r','[ERR]');
+const okL  =m=>tline(esc(m),'text-[#00ff66] glow-g','[OK]');
+const execL=m=>tline(esc(m),'text-[#00f3ff]/80','[EXEC]');
+function caretLine(){ const d=document.createElement('div'); d.className='term-line caretline'; d.innerHTML='<span class="text-[#00ff66]">λ</span> <span class="blink text-[#00ff66]">▊</span>'; term.appendChild(d); term.scrollTop=term.scrollHeight; }
+
+/* ================================================================
+   4. RENDERING
+================================================================ */
+function renderCaseGrid(){
+  const g=document.getElementById('caseGrid'); g.innerHTML='';
+  CASES.forEach(c=>{
+    const solved=state.solved.includes(c.id), active=c.id===state.active;
+    const b=document.createElement('button');
+    b.className=`relative h-10 rounded border text-[12px] font-bold tracking-wider transition-all ${
+      active?'border-[#00f3ff] bg-[#00f3ff]/15 text-[#00f3ff] glow-c shadow-[0_0_16px_-4px_#00f3ff88]':
+      solved?'border-[#00ff66]/50 bg-[#00ff66]/8 text-[#00ff66] hover:bg-[#00ff66]/15':
+      'border-[#1e293b] bg-[#ffffff04] text-slate-400 hover:border-slate-500 hover:text-slate-200'}`;
+    b.innerHTML=String(c.id).padStart(2,'0')+(solved?'<span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#00ff66] shadow-[0_0_8px_#00ff66]"></span>':'');
+    b.title=`${c.title} — ${c.tier}`;
+    b.onclick=()=>selectCase(c.id);
+    g.appendChild(b);
+  });
+}
+function tierColor(t){ return t==='NOVICE'?'#00ff66':t==='OPERATOR'?'#00f3ff':t==='ADVANCED'?'#ffb000':'#ff3366'; }
+
+function renderDossier(){
+  const c=cur(); const solved=state.solved.includes(c.id);
+  const tc=tierColor(c.tier);
+  let schemaHtml='';
+  c.datasets.forEach(ds=>{
+    const rows=DATA[ds.name]||[]; const n=rows.length;
+    schemaHtml+=`<div class="border border-[#1e293b] rounded overflow-hidden">
+      <div class="flex items-center gap-2 px-2.5 py-1.5 bg-[#0e1420]">
+        <i data-lucide="database" class="w-3 h-3 text-[#00f3ff]"></i>
+        <span class="text-[10px] font-bold text-[#00f3ff] tracking-wider">${ds.name}</span>
+        <span class="text-[9px] text-slate-500">${ds.kind==='set'?`set[str] · ${n} values`:`list[dict] · ${n} rows`}</span>
+        <div class="flex-1"></div>
+        <button class="btn-dim text-[8px] tracking-[.15em] px-1.5 py-0.5 rounded uppercase" onclick="sampleRow('${ds.name}')">sample → term</button>
+      </div>
+      <table class="w-full text-[10px]">
+        <thead><tr class="text-slate-500 text-left border-b border-[#1e293b]"><th class="px-2.5 py-1 font-medium">FIELD</th><th class="px-2 py-1 font-medium">TYPE</th><th class="px-2 py-1 font-medium">NOTES</th></tr></thead>
+        <tbody>${ds.schema.map(s=>`<tr class="border-b border-[#1e293b]/50 last:border-0"><td class="px-2.5 py-1 text-[#c9f7d9]">${s[0]}</td><td class="px-2 py-1 text-[#ffb000]/80">${s[1]}</td><td class="px-2 py-1 text-slate-500">${s[2]}</td></tr>`).join('')}</tbody>
+      </table></div>`;
+  });
+  document.getElementById('dossier').innerHTML=`
+    <section class="card rounded-md overflow-hidden fadeup">
+      <div class="px-4 pt-4 pb-3 border-b border-[#1e293b] bg-gradient-to-b from-[#0e1420] to-transparent">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-[9px] tracking-[.25em] uppercase text-slate-500">case file ${String(c.id).padStart(3,'0')}</span>
+          <span class="px-2 py-0.5 rounded text-[9px] font-bold tracking-[.15em] border" style="color:${tc};border-color:${tc}55;background:${tc}12">${c.tier}</span>
+          ${solved?'<span class="px-2 py-0.5 rounded text-[9px] font-bold tracking-[.15em] border border-[#00ff66]/50 text-[#00ff66] bg-[#00ff66]/10">RESOLVED</span>':''}
+        </div>
+        <h2 class="text-[15px] font-extrabold text-slate-100 mt-1.5 leading-snug">${c.title.toUpperCase()}</h2>
+        <div class="text-[9px] tracking-[.2em] text-slate-500 mt-1 uppercase">skill drill :: ${c.skill}</div>
+      </div>
+      <div class="p-4 space-y-3">
+        <p class="text-[12px] text-slate-400 leading-relaxed">${c.brief}</p>
+        <div class="border-l-2 border-[#00ff66] bg-[#00ff66]/5 px-3 py-2.5 rounded-r">
+          <div class="text-[9px] tracking-[.25em] text-[#00ff66] uppercase mb-1">tasking order</div>
+          <p class="text-[11.5px] text-[#d9f7e4] leading-relaxed">${c.objective}</p>
+          <p class="text-[10px] text-[#00ff66]/80 mt-2 tracking-wider">${c.submit}</p>
+        </div>
+        <div>
+          <div class="sect-h mb-2">data schemas</div>
+          <div class="space-y-2">${schemaHtml}</div>
+        </div>
+      </div>
+    </section>`;
+  renderVerify(); renderHints(); renderNotes(); renderSolBtn();
+  document.getElementById('fileChip').textContent=`audit_case${String(c.id).padStart(2,'0')}.py`;
+  lucide.createIcons();
+}
+
+function renderVerify(){
+  const c=cur(); const solved=state.solved.includes(c.id);
+  const at=state.attempts[c.id]||0;
+  document.getElementById('verifyBox').innerHTML=`
+    <div class="flex items-center justify-between mb-3">
+      <span class="sect-h">findings verification</span>
+      <span class="text-[9px] tracking-[.2em] text-slate-500 uppercase">attempts: <span class="${at>0?'text-[#ffb000]':'text-slate-500'}">${at}</span></span>
+    </div>
+    <div class="space-y-2.5">
+      ${c.fields.map((f,i)=>`<div>
+        <label class="text-[9px] tracking-[.2em] text-slate-500 uppercase">${f.label}</label>
+        <input id="vf${i}" ${solved?'disabled':''} autocomplete="off" spellcheck="false" placeholder="${esc(f.ph)}"
+          class="w-full mt-1 bg-[#0b0e14]/80 border border-[#1e293b] rounded px-3 py-2 text-[12px] text-[#c9f7d9] placeholder:text-slate-700 focus:border-[#00ff66]/50"/>
+      </div>`).join('')}
+    </div>
+    <button id="verifyBtn" ${solved?'disabled':''} class="w-full mt-3 ${solved?'btn-dim opacity-50 cursor-not-allowed':'btn-g'} text-[11px] tracking-[.22em] px-4 py-2.5 rounded uppercase font-bold flex items-center justify-center gap-2">
+      <i data-lucide="${solved?'check':'crosshair'}" class="w-4 h-4"></i>${solved?'case closed — findings accepted':'submit findings'}
+    </button>
+    <div id="vFeedback" class="mt-3"></div>
+    ${solved?debriefHtml(c):''}`;
+  if(!solved) document.getElementById('verifyBtn').onclick=doVerify;
+  lucide.createIcons();
+}
+function debriefHtml(c){
+  return `<div class="mt-3 border border-[#00ff66]/30 bg-[#00ff66]/5 rounded p-3 fadeup">
+    <div class="text-[9px] tracking-[.25em] text-[#00ff66] uppercase mb-1.5">post-mortem :: senior lead debrief</div>
+    <p class="text-[11px] text-[#d9f7e4] leading-relaxed">${c.debrief}</p>
+  </div>`;
+}
+
+function renderHints(){
+  const c=cur(); const revealed=state.hints[c.id]||0;
+  document.getElementById('hintBox').innerHTML=`
+    <div class="sect-h mb-3">watson :: senior lead intel (${revealed}/3 revealed)</div>
+    <div class="space-y-2">
+      ${c.hints.map((h,i)=>{
+        const open=i<revealed;
+        return open?`<div class="border border-[#ffb000]/25 bg-[#ffb000]/5 rounded p-3 fadeup">
+            <div class="text-[9px] tracking-[.25em] text-[#ffb000] uppercase mb-1.5 flex items-center gap-1.5"><i data-lucide="lightbulb" class="w-3 h-3"></i>tier ${['I','II','III'][i]} transmission</div>
+            <p class="text-[11px] text-[#f3e3b8] leading-relaxed">${h}</p></div>`
+        :`<button onclick="revealHint(${i})" class="w-full border border-[#1e293b] bg-[#ffffff03] hover:border-[#ffb000]/40 hover:bg-[#ffb000]/5 transition-all rounded p-2.5 text-left flex items-center gap-2.5">
+            <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span class="text-[10px] tracking-[.2em] text-slate-500 uppercase">decrypt hint tier ${['I','II','III'][i]}</span>
+            <span class="flex-1"></span><span class="text-[9px] text-slate-600">${i===0?'free':i===1?'level '+revealed+'+':'final'}</span>
+          </button>`;
+      }).join('')}
+    </div>`;
+  lucide.createIcons();
+}
+function revealHint(i){
+  const c=cur(); const curR=state.hints[c.id]||0;
+  if(i>curR) return;
+  state.hints[c.id]=i+1; save(); renderHints();
+  sysL(`watson uplink: hint tier ${['I','II','III'][i]} decrypted for case ${String(c.id).padStart(2,'0')}`);
+}
+
+function renderNotes(){
+  const c=cur(); const el=document.getElementById('notes');
+  el.value=state.notes[c.id]||'';
+}
+
+function renderSolBtn(){
+  const c=cur(); const solved=state.solved.includes(c.id);
+  const b=document.getElementById('solBtn');
+  document.getElementById('solBtnTxt').textContent=solved?'load solution':'solution locked';
+  b.className=(solved?'btn-c':'btn-dim opacity-60')+' text-[9px] tracking-[.18em] px-2.5 py-1 rounded uppercase flex items-center gap-1.5';
+  b.innerHTML=`<i data-lucide="${solved?'lock-open':'lock'}" class="w-3 h-3"></i><span>${solved?'load solution':'solution locked'}</span>`;
+  b.onclick=()=>{ if(!state.solved.includes(cur().id)){ sysL('reference solution is sealed until case resolution. earn it, analyst.'); return; }
+    const ed=document.getElementById('editor');
+    ed.value += `\n\n# ── REFERENCE SOLUTION :: CASE ${String(c.id).padStart(2,'0')} ──\n${c.solution}`;
+    syncGutter(); persistCode(); sysL('reference solution appended to console buffer.'); };
+  lucide.createIcons();
+}
+
+function renderToolkit(){
+  const snips=[
+    ['filter comprehension','filter',`flagged = [r for r in ROWS if CONDITION]\nprint(len(flagged))`],
+    ['counter tally','list-ordered',`from collections import Counter\ntally = Counter(r['KEY'] for r in ROWS)\nprint(tally.most_common(10))`],
+    ['group: defaultdict','layout-list',`from collections import defaultdict\ngroups = defaultdict(list)\nfor r in ROWS:\n    groups[r['KEY']].append(r)`],
+    ['datetime delta','timer',`from datetime import datetime\nFMT = '%Y-%m-%d %H:%M:%S'\ndelta_s = (datetime.strptime(t2, FMT) - datetime.strptime(t1, FMT)).total_seconds()`],
+    ['regex extract','scan-line',`import re\npat = re.compile(r'([A-Za-z0-9+/]{14,})')\nfor m in pat.finditer(text):\n    print(m.group(1))`],
+    ['base64 decode','binary',`import base64\nraw = ''.join(chunks)\nraw += '=' * (-len(raw) % 4)   # repad\nprint(base64.b64decode(raw).decode())`],
+    ['recursive tree walk','git-branch',`kids = {}\nfor p in ROWS:\n    kids.setdefault(p['parent_process_id'], []).append(p)\n\ndef walk(pid, depth=0):\n    for c in kids.get(pid, []):\n        print('  ' * depth, c['process_id'], c['process_name'])\n        walk(c['process_id'], depth + 1)`],
+    ['set membership','shield',`IOCS = {'aaa', 'bbb'}   # sets test in O(1)\nhits = [r for r in ROWS if r['KEY'] in IOCS]`],
+    ['consecutive pairs','arrow-right-left',`ROWS.sort(key=lambda r: r['timestamp'])\nfor a, b in zip(ROWS, ROWS[1:]):\n    pass  # pairwise interval scan`],
+    ['dataset join','merge',`idx = {r['JOIN_KEY']: r for r in TABLE_B}\nmerged = [(a, idx.get(a['JOIN_KEY'])) for a in TABLE_A]`]
+  ];
+  document.getElementById('toolkit').innerHTML=snips.map((s,i)=>`
+    <button onclick="insertSnippet(${i})" class="border border-[#1e293b] bg-[#ffffff03] hover:border-[#00f3ff]/40 hover:bg-[#00f3ff]/5 transition-all rounded p-2 text-left flex items-center gap-2 group">
+      <i data-lucide="${s[1]}" class="w-3.5 h-3.5 text-[#00f3ff]/70 group-hover:text-[#00f3ff]"></i>
+      <span class="text-[9.5px] tracking-wider text-slate-400 group-hover:text-slate-200 uppercase">${s[0]}</span>
+    </button>`).join('');
+  window._snips=snips;
+  lucide.createIcons();
+}
+function insertSnippet(i){
+  const ed=document.getElementById('editor'); const snip=window._snips[i][2];
+  const pos=ed.selectionStart; const before=ed.value.slice(0,pos); const after=ed.value.slice(pos);
+  const nl = before.length && !before.endsWith('\n') ? '\n' : '';
+  ed.value = before + nl + snip + '\n' + after;
+  ed.focus(); ed.selectionStart=ed.selectionEnd=(before+nl+snip+'\n').length;
+  syncGutter(); persistCode();
+  sysL(`toolkit module injected: ${window._snips[i][0]}`);
+}
+
+/* ================================================================
+   5. EDITOR
+================================================================ */
+const ed=document.getElementById('editor');
+function syncGutter(){
+  const n=ed.value.split('\n').length;
+  const g=document.getElementById('gutter');
+  g.innerHTML=Array.from({length:n},(_,i)=>i+1).join('<br>');
+  document.getElementById('editorMeta').textContent=`${n} lines · ${ed.value.length} chars`;
+}
+ed.addEventListener('scroll',()=>{ document.getElementById('gutter').scrollTop=ed.scrollTop; });
+ed.addEventListener('input',()=>{ syncGutter(); persistCode(); });
+ed.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){ e.preventDefault(); const p=ed.selectionStart;
+    ed.value=ed.value.slice(0,p)+'    '+ed.value.slice(ed.selectionEnd);
+    ed.selectionStart=ed.selectionEnd=p+4; syncGutter(); persistCode(); return; }
+  if(e.key==='Enter' && !e.ctrlKey && !e.metaKey){
+    e.preventDefault(); const p=ed.selectionStart;
+    const lineStart=ed.value.lastIndexOf('\n',p-1)+1;
+    const lineTxt=ed.value.slice(lineStart,p);
+    const indent=(lineTxt.match(/^[ ]*/)||[''])[0] + (/:\s*(#.*)?$/.test(lineTxt)?'    ':'');
+    ed.value=ed.value.slice(0,p)+'\n'+indent+ed.value.slice(ed.selectionEnd);
+    ed.selectionStart=ed.selectionEnd=p+1+indent.length; syncGutter(); persistCode(); return; }
+});
+let codeT=null;
+function persistCode(){ clearTimeout(codeT); codeT=setTimeout(()=>{ state.code[cur().id]=ed.value; save(); },350); }
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){ e.preventDefault(); runCode(); } });
+
+/* ================================================================
+   6. PYODIDE RUNTIME
+================================================================ */
+let pyodide=null, runtimeReady=false, running=false;
+function setRuntime(mode,msg){
+  const led=document.getElementById('rtLed'), txt=document.getElementById('rtTxt'), dot=document.getElementById('termDot');
+  const cls=mode==='on'?'led led-on':mode==='off'?'led led-off':'led led-boot';
+  led.className=cls; dot.className=cls;
+  txt.textContent=msg; txt.className=`text-[10px] tracking-[.2em] uppercase ${mode==='on'?'text-[#00ff66]':mode==='off'?'text-[#ff3366]':'text-[#ffb000]'}`;
+}
+async function bootPython(logFn){
+  logFn('[....] resolving pyodide wasm runtime v0.26.1');
+  pyodide=await loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/'});
+  logFn('[ OK ] python 3.12 interpreter online (wasm32)');
+  pyodide.globals.set('__boot_json', JSON.stringify(DATA));
+  pyodide.globals.set('__sets_json', JSON.stringify(SETNAMES));
+  pyodide.runPython(`
+import json as _json
+_sets = set(_json.loads(__sets_json))
+for _k, _v in _json.loads(__boot_json).items():
+    globals()[_k] = set(_v) if _k in _sets else _v
+from pprint import pprint
+del _json, _sets, _k, _v
+`);
+  runtimeReady=true;
+  setRuntime('on','runtime online');
+  document.getElementById('runBtn').classList.remove('opacity-40','pointer-events-none');
+  logFn(`[ OK ] ${Object.keys(DATA).length} telemetry datasets mounted into python globals`);
+  logFn('[ OK ] stdout/stderr capture pipes attached');
+}
+
+async function runCode(){
+  if(running) return;
+  if(!runtimeReady){ sysL('runtime offline — check network/CDN reachability and reload.'); return; }
+  const code=ed.value; if(!code.trim()){ sysL('console buffer empty.'); return; }
+  running=true; const t0=performance.now();
+  const firstLine=(code.split('\n').find(l=>l.trim()&&!l.trim().startsWith('#'))||'# --').trim();
+  execL(`case_${String(cur().id).padStart(2,'0')} :: ${firstLine.slice(0,72)}${firstLine.length>72?'…':''}`);
+  let outBuf=[];
+  pyodide.setStdout({batched:s=>{ s.split('\n').forEach(l=>{ if(l.trim()) outL(l); }); }});
+  pyodide.setStderr({batched:s=>{ s.split('\n').forEach(l=>{ if(l.trim()) errL(l); }); }});
+  let status='ok', errMsg='';
+  try{
+    const res=await pyodide.runPythonAsync(code);
+    if(res!==undefined){
+      try{
+        pyodide.globals.set('__res_echo',res);
+        const rep=pyodide.runPython('repr(__res_echo)');
+        pyodide.runPython('del __res_echo');
+        resL('← '+rep);
+      }catch(e){}
+    }
+  }catch(err){
+    status='error';
+    errMsg=String(err.message||err).split('\n').filter(l=>!l.includes('File "<exec>", line 1, in <module>')||true).join('\n');
+    errL(errMsg.trim().split('\n').slice(-6).join('\n'));
+  }
+  const ms=Math.round(performance.now()-t0);
+  (status==='ok'?okL:errL)(`execution ${status==='ok'?'complete':'failed'} · ${ms}ms`);
+  caretLine();
+  state.history.unshift({t:new Date().toISOString().slice(5,19).replace('T',' '),case:cur().id,line:firstLine.slice(0,60),status,ms,code:code.slice(0,4000)});
+  state.history=state.history.slice(0,30); save(); renderHistory();
+  running=false;
+}
+
+document.getElementById('runBtn').onclick=runCode;
+document.getElementById('clearTerm').onclick=()=>{ term.innerHTML=''; caretLine(); };
+document.getElementById('exportBtn').onclick=()=>{
+  const blob=new Blob([transcript.join('\n')],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='soc_console_transcript.txt'; a.click();
+  sysL('transcript exported to soc_console_transcript.txt');
+};
+
+/* ================================================================
+   7. HISTORY / SAMPLE / VERIFY
+================================================================ */
+function renderHistory(){
+  const el=document.getElementById('histList');
+  if(!state.history.length){ el.innerHTML='<div class="text-[10px] text-slate-600 px-2 py-3 tracking-wider uppercase">no executions on record — run something.</div>'; return; }
+  el.innerHTML=state.history.map((h,i)=>`
+    <button onclick="restoreRun(${i})" class="w-full flex items-center gap-2 px-2 py-1.5 rounded border border-transparent hover:border-[#1e293b] hover:bg-[#ffffff04] transition-all text-left">
+      <span class="w-1.5 h-1.5 rounded-full ${h.status==='ok'?'bg-[#00ff66]':'bg-[#ff3366]'} shrink-0"></span>
+      <span class="text-[9px] text-slate-500 shrink-0">${h.t}</span>
+      <span class="text-[9px] px-1.5 rounded border border-[#00f3ff]/30 text-[#00f3ff]/80 shrink-0">C${String(h.case).padStart(2,'0')}</span>
+      <span class="text-[10px] text-slate-400 truncate">${esc(h.line)}</span>
+      <span class="flex-1"></span><span class="text-[9px] text-slate-600 shrink-0">${h.ms}ms</span>
+    </button>`).join('');
+}
+function restoreRun(i){ const h=state.history[i]; if(!h) return; ed.value=h.code; syncGutter(); persistCode(); sysL(`run restored from audit trail (${h.t} · case ${String(h.case).padStart(2,'0')})`); }
+document.getElementById('histClear').onclick=()=>{ state.history=[]; save(); renderHistory(); sysL('audit trail purged.'); };
+
+function sampleRow(name){
+  const rows=DATA[name]; if(!rows||!rows.length) return;
+  const sample=rows[Math.floor(rows.length/2)]||rows[0];
+  sysL(`sample ${name}[*] ::`);
+  tline(esc(JSON.stringify(sample)),'text-[#00f3ff]/80');
+  term.scrollTop=term.scrollHeight;
+}
+
+function normVal(v,mode){
+  v=String(v||'').trim();
+  if(mode==='digits') return (v.match(/\d+/g)||[]).join(',');
+  let s=v.replace(/[→➔➜]/g,',').toLowerCase().replace(/(["'`])/g,'').replace(/\s+/g,' ');
+  if(mode==='lc') return s.trim();
+  if(mode==='plain') return v.trim().replace(/^["']|["']$/g,'');
+  const parts=s.split(/[,;\s>]+/).filter(Boolean);
+  if(mode==='list') return parts.sort().join('|');
+  if(mode==='seq') return parts.join('|');
+  return s;
+}
+function doVerify(){
+  const c=cur(); if(state.solved.includes(c.id)) return;
+  const fb=document.getElementById('vFeedback');
+  let allOk=true, chips=[];
+  c.fields.forEach((f,i)=>{
+    const got=document.getElementById('vf'+i).value;
+    const ok=normVal(got,f.mode)===normVal(f.ans,f.mode);
+    if(!ok) allOk=false;
+    chips.push(`<span class="px-2 py-0.5 rounded text-[9px] tracking-[.15em] border ${ok?'border-[#00ff66]/50 text-[#00ff66] bg-[#00ff66]/10':'border-[#ff3366]/50 text-[#ff3366] bg-[#ff3366]/10'}">${f.label}: ${ok?'MATCH':'MISMATCH'}</span>`);
+  });
+  state.attempts[c.id]=(state.attempts[c.id]||0)+1; save();
+  if(allOk){
+    state.solved.push(c.id); save();
+    fb.innerHTML=chips.join(' ');
+    okL(`══ CASE ${String(c.id).padStart(2,'0')} RESOLVED ══ findings accepted by review board`);
+    okL(`"${c.title}" :: post-mortem debrief unlocked in dossier panel`);
+    sysL(c.submit.replace('SUBMIT:','submitted:')+' ✓');
+    renderCaseGrid(); renderDossier(); updateProgress();
+    document.getElementById('solBtn').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }else{
+    fb.innerHTML=`<div class="shake flex flex-wrap gap-1.5">${chips.join(' ')}</div>
+      <p class="text-[10px] text-[#ff3366]/90 mt-2">review board rejected the packet.${(state.attempts[c.id]>=3)?' recommendation: decrypt a higher hint tier.':''}</p>`;
+    errL(`case ${String(c.id).padStart(2,'0')} verification FAILED (attempt ${state.attempts[c.id]}) — recheck your structures.`);
+  }
+}
+
+/* ================================================================
+   8. PROGRESS / CASE SWITCH / NOTES
+================================================================ */
+function updateProgress(){
+  const n=state.solved.length;
+  document.getElementById('progBar').style.width=(n*10)+'%';
+  document.getElementById('progTxt').textContent=`${n}/10`;
+  document.getElementById('rankTxt').textContent=n<=2?'CADET':n<=5?'OPERATOR':n<=8?'SENTINEL':'INCIDENT LEAD';
+}
+function selectCase(id){
+  state.code[cur().id]=ed.value;
+  state.active=id; save();
+  renderCaseGrid(); renderDossier(); renderHistory();
+  ed.value=state.code[id]!==undefined?state.code[id]:cur().starter;
+  ed.scrollTop=0;
+  syncGutter();
+  const c=cur();
+  sysL(`dossier loaded :: case ${String(id).padStart(2,'0')} — ${c.title} [${c.tier}]`);
+  sysL(`datasets live in python: ${c.datasets.map(d=>d.name).join(', ')}`);
+}
+const noteEl=document.getElementById('notes');
+let noteT=null;
+noteEl.addEventListener('input',()=>{
+  const lbl=document.getElementById('noteSaved');
+  lbl.innerHTML='<span class="w-1.5 h-1.5 rounded-full bg-[#ffb000]"></span>writing';
+  clearTimeout(noteT); noteT=setTimeout(()=>{
+    state.notes[cur().id]=noteEl.value; save();
+    lbl.innerHTML='<span class="w-1.5 h-1.5 rounded-full bg-[#00ff66]"></span>autosaved';
+  },600);
+});
+
+/* ================================================================
+   9. BOOT SEQUENCE
+================================================================ */
+function bootLine(html,cls){ const d=document.createElement('div'); d.className=cls||'text-slate-400'; d.innerHTML=html; const bl=document.getElementById('bootlog'); bl.appendChild(d); bl.scrollTop=bl.scrollHeight; }
+function setBar(p){ document.getElementById('bootbar').style.width=p+'%'; }
+function dismissBoot(){
+  const b=document.getElementById('boot'); b.style.opacity='0';
+  setTimeout(()=>b.style.display='none',520);
+}
+async function init(){
+  if(!CASES.find(c=>c.id===state.active)) state.active=1;
+  renderCaseGrid(); renderToolkit(); renderDossier(); renderHistory(); updateProgress();
+  ed.value=state.code[state.active]!==undefined?state.code[state.active]:cur().starter;
+  syncGutter(); caretLine();
+  document.getElementById('runBtn').classList.add('opacity-40','pointer-events-none');
+  sysL('soc console initialized. awaiting python runtime…');
+
+  const steps=[
+    ()=>bootLine(`[ OK ] <span class="text-[#00ff66]">telemetry arrays hydrated</span> — ${Object.keys(DATA).length} synthetic datasets seeded`),
+    ()=>bootLine('[ OK ] case registry loaded — <span class="text-[#00f3ff]">10 incidents queued</span>'),
+    ()=>bootLine('[....] pulling pyodide core from jsDelivr edge…'),
+    ()=>setBar(25) ];
+  steps.forEach((fn,i)=>setTimeout(fn, 220*(i+1)));
+  setBar(12);
+  const skip=document.getElementById('skipboot');
+  const skipT=setTimeout(()=>{ if(!runtimeReady){ skip.classList.remove('hidden'); } },6000);
+  skip.onclick=dismissBoot;
+
+  try{
+    await bootPython(m=>bootLine(m.replace('[ OK ]','[ <span class="text-[#00ff66]">OK</span> ]').replace('....','<span class="text-[#ffb000]">....</span>')));
+    clearTimeout(skipT);
+    setBar(100);
+    bootLine('');
+    bootLine('<span class="text-[#00ff66] glow-g">▸ RUNTIME ONLINE — welcome to the floor, analyst. ctrl+enter to execute.</span>');
+    sysL('pyodide runtime online — python 3.12 (wasm32). datasets live in globals.');
+    okL('all 10 case datasets mounted. the floor is yours, analyst.');
+    caretLine();
+    setTimeout(dismissBoot, 900);
+  }catch(e){
+    clearTimeout(skipT);
+    setRuntime('off','runtime offline');
+    bootLine(`[ <span class="text-[#ff3366]">FAIL</span> ] ${esc(String(e).slice(0,120))}`,'text-[#ff3366]');
+    bootLine('<span class="text-[#ffb000]">▸ CDN unreachable. dossiers remain browsable — python execution disabled.</span>');
+    setBar(100);
+    skip.classList.remove('hidden');
+    errL('pyodide load failed — network/CDN unreachable. execution sandbox offline.');
+  }
+}
+init();
+</script>
+</body>
+</html>
