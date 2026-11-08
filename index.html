@@ -147,12 +147,15 @@
         },
       },
       {
-        soon: true,
-        title: 'Next language',
-        lang: '???',
-        blurb: 'The next game in the series is in the works.',
-        topics: [],
-        snippet: ['// coming soon'],
+        path: 'soc-logger/',                            // ← the SOC Logger's folder
+        title: 'The SOC Logger',
+        lang: 'Python',
+        accent: '#4cc9f0',
+        blurb: 'Learn Python on a security operations shift: parse logs, audit activity and practise basic blue-team defence.',   // ← one-line pitch
+        topics: ['log parsing', 'auditing', 'blue teaming', 'Python basics'],                                                    // ← what it covers
+        snippet: ['for line in open("auth.log"):', '    if "Failed password" in line:', '        ip = line.split()[-4]', '        fails[ip] += 1'],
+        emblem: 'shield',
+        // progress() { ... }  ← optional: read its localStorage and return e.g. '<b>3/8</b> incidents closed'
       },
     ];
     /* ==================================================================== */
@@ -160,6 +163,7 @@
     const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const EMBLEMS = {
       hex: (c) => `<svg class="emblem" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3L57 17V47L32 61L7 47V17Z" fill="#141414" stroke="${c}" stroke-width="2.5"/><circle cx="32" cy="12.5" r="2.4" fill="${c}"/><rect x="15" y="23" width="34" height="12" rx="6" fill="#0a0a0d" stroke="${c}" stroke-width="1.5"/><rect x="18.5" y="26.5" width="27" height="5" rx="2.5" fill="${c}"/><path d="M23 45h18" stroke="${c}" stroke-width="2" stroke-linecap="round" opacity=".7"/></svg>`,
+      shield: (c) => `<svg class="emblem" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 5L54 13V30C54 44 44.5 54.5 32 59C19.5 54.5 10 44 10 30V13Z" fill="#0c141a" stroke="${c}" stroke-width="2.6" stroke-linejoin="round"/><path d="M22 32l7 7 13-14" fill="none" stroke="${c}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
       glass: (c) => `<svg class="emblem" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="${c}" stroke-linecap="round"><circle cx="27" cy="27" r="16" stroke-width="3"/><path d="M18.5 23.5a10 10 0 0 1 8-6.5" stroke-width="1.8" opacity=".7"/><path d="M39 39L54 54" stroke-width="7"/></g></svg>`,
       table: (c) => `<svg class="emblem" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="10" width="52" height="44" rx="6" fill="#0f1218" stroke="${c}" stroke-width="2.5"/><path d="M6 24h52M6 38h52M26 10v44" stroke="${c}" stroke-width="2" opacity=".75"/><rect x="8" y="12" width="48" height="10" rx="3" fill="${c}" opacity=".35"/></svg>`,
     };
@@ -181,7 +185,7 @@
       const accent = g.accent || '#64625d';
       let prog = null;
       if (g.progress) { try { prog = g.progress(); } catch (e) { prog = null; } }
-      const ghost = g.snippet.map((l) => esc(l).replace(/^(\s*)(SELECT|FROM|JOIN|WHERE|ORDER BY|let|fn)\b/, '$1<span class="k">$2</span>')).join('\n');
+      const ghost = g.snippet.map((l) => esc(l).replace(/^(\s*)(SELECT|FROM|JOIN|WHERE|ORDER BY|let|fn|for|if|def|import|return)\b/, '$1<span class="k">$2</span>')).join('\n');
       const inner = `
         <div class="screen">
           <pre class="ghost" aria-hidden="true">${ghost}</pre>
@@ -194,7 +198,7 @@
           <p>${esc(g.blurb)}</p>
           ${g.topics.length ? `<ul class="topics">${g.topics.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
           <div class="meta">
-            <span class="progress">${prog || (g.soon ? '' : 'not started')}</span>
+            <span class="progress">${prog || (g.soon || !g.progress ? '' : 'not started')}</span>
             <span class="play">${g.soon ? 'Soon' : (prog ? 'Continue →' : 'Play →')}</span>
           </div>
         </div>`;
