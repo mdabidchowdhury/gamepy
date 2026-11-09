@@ -151,8 +151,8 @@
         title: 'The SOC Logger',
         lang: 'Python',
         accent: '#4cc9f0',
-        blurb: 'Hunt through synthetic SOC telemetry with real Python: brute force, beacons, DNS tunnels, credential dumping and a full kill chain.',
-        topics: ['comprehensions', 'collections', 'datetime & regex', 'threat hunting'],
+        blurb: 'Hunt through synthetic SOC telemetry with real Python: brute force, beacons, DNS tunnels, credential dumping and a full kill chain. Includes a red-team CTF companion lab (toggle inside).',
+        topics: ['comprehensions', 'collections', 'datetime & regex', 'blue + red team'],
         snippet: ['for line in open("auth.log"):', '    if "Failed password" in line:', '        ip = line.split()[-4]', '        fails[ip] += 1'],
         emblem: 'shield',
         progress() {
